@@ -1,36 +1,26 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+**Hotel/Airbnb Booking System Documentation**
 
-## Getting Started
+This is a full-stack Hotel or Airbnb-style Booking System built with Next.js using the App Router. It features a multi-step reservation system for guests, role-based access, and an admin dashboard for managing rooms and bookings.
 
-First, run the development server:
+**Features**
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+  **Guest Features**
+    - Google Sign-In via NextAuth
+    - Browse rooms and filter by availability
+    - Multi-step booking process
+    - Confirmation and booking summary
+    - View booking history
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+  **Admin Features**
+    - Add, edit, or delete rooms
+    - View all bookings
+    - View revenue and occupancy analytics
+    - Role-based access control
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Booking Flow (Frontend)**
+  Step 1: Select available dates (disable booked dates)
+  Step 2: Select room type & guest count
+  Step 3: Fill guest details
+  Step 4: Review and confirm booking
+  Data will be saved in local state or Context API before final submission.
