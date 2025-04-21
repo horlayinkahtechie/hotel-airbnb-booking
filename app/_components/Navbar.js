@@ -1,25 +1,50 @@
-import { Button } from "@/components/ui/button";
+"use client";
+import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { FaUserCircle } from "react-icons/fa";
 
 export default function Navbar() {
-  return (
-    <header className="w-full px-4 py-4 flex justify-between items-center border-b shadow-sm">
-      <Link href="/" className="text-xl font-bold text-primary">
-        BookNest
-      </Link>
+  const { data: session, status } = useSession();
 
-      <nav className="flex gap-6 items-center">
-        <Link href="/#listings" className="hover:underline">
-          Explore
+  if (status === "loading") {
+    return null;
+  }
+
+  return (
+    <>
+      <header className="w-full px-4 py-4 flex justify-between items-center border-b shadow-sm">
+        <Link href="/" className="text-xl font-bold text-primary">
+          BookNest
         </Link>
-        <Link href="/about" className="hover:underline">
-          About
-        </Link>
-        <Link href="/contact" className="hover:underline">
-          Contact
-        </Link>
-        <Button variant="outline">Login</Button>
-      </nav>
-    </header>
+
+        <nav className="flex gap-6 items-center">
+          <Link href="/explore" className="hover:underline">
+            Explore
+          </Link>
+          <Link href="/aboutus" className="hover:underline">
+            About
+          </Link>
+          <Link href="/contact" className="hover:underline">
+            Contact
+          </Link>
+          {session ? (
+            <div className="flex items-center gap-2">
+              <Link href="/user/profile">
+                <FaUserCircle size={24} className="text-gray-700" />
+              </Link>
+
+              <Button variant="outline" onClick={() => signOut()}>
+                Logout
+              </Button>
+            </div>
+          ) : (
+            <Button variant="outline">
+              <Link href="/auth/user/signin">Login</Link>
+            </Button>
+          )}
+        </nav>
+      </header>
+    </>
   );
 }
