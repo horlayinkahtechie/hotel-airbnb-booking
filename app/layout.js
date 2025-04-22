@@ -1,13 +1,16 @@
-"use client";
-import { SessionProvider } from "next-auth/react";
 import "./globals.css";
+import ClientLayout from "./clientLayout";
 
-export default function ClientLayout({ children }) {
+export const metadata = {
+  title: "BookNest",
+  description: "Find the best hotels, apartments, and shortlets",
+};
+
+export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        {" "}
-        <SessionProvider>{children}</SessionProvider>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );
