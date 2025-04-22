@@ -9,7 +9,7 @@ export default function SignInPage() {
       <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-md text-center">
         <h1 className="text-2xl font-bold mb-2">Welcome Back 👋</h1>
         <p className="text-gray-600 mb-6">
-          Sign in or sign up to access your dashboard
+          Sign in or Sign up to access your dashboard
         </p>
 
         <button
