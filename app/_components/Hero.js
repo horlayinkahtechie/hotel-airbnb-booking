@@ -11,7 +11,7 @@ export default function Hero() {
         </p>
         <input
           type="text"
-          placeholder="Search location"
+          placeholder="Search hotel or shortlet"
           className="px-4 py-2 w-full rounded-md border focus:outline-none focus:ring"
         />
       </div>

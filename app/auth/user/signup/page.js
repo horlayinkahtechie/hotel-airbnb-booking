@@ -1,6 +1,6 @@
 // import { getServerSession } from "next-auth";
 // import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import SignInPage from "./signInPage";
+import SignUpPage from "./signUpPage";
 // import { redirect } from "next/navigation";
 
 export default async function SignIn() {
@@ -12,5 +12,5 @@ export default async function SignIn() {
   //   console
   // }
 
-  return <SignInPage />;
+  return <SignUpPage />;
 }

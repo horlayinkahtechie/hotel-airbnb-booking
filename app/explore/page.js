@@ -9,8 +9,8 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import Navbar from "../_components/Navbar";
+import BookNowButton from "../_components/book";
 
 const listings = [
   {
@@ -37,7 +37,6 @@ const listings = [
     price: "₦15,000",
     location: "Ajah, Lagos",
   },
-  // Add more sample data as needed
 ];
 
 export default function ExplorePage() {
@@ -93,12 +92,7 @@ export default function ExplorePage() {
                 </CardDescription>
                 <div className="flex items-center justify-between">
                   <p className="font-semibold">{listing.price} / night</p>
-                  <Button
-                    variant="outline"
-                    className="cursor-pointer hover:bg-black-500"
-                  >
-                    Book Now
-                  </Button>
+                  <BookNowButton />
                 </div>
               </CardContent>
             </Card>

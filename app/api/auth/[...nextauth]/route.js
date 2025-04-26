@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 
-export const authOptions = {
+const handler = NextAuth({
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
@@ -10,17 +10,14 @@ export const authOptions = {
   ],
   pages: {
     signIn: "/auth/user/signin",
-    error: "/auth/user/signin",
+    error: "/unauthorized",
   },
   callbacks: {
-    async redirect({ url, baseUrl }) {
-      // redirect after login
-      return `${baseUrl}/`;
+    async signIn({ user }) {
+      console.log("User signed in:", user);
+      return true; // Always allow sign-in
     },
   },
-  secret: process.env.NEXTAUTH_SECRET,
-};
-
-const handler = NextAuth(authOptions);
+});
 
 export { handler as GET, handler as POST };

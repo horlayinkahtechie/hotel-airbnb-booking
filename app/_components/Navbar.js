@@ -30,16 +30,20 @@ export default function Navbar() {
           </Link>
           {session ? (
             <div className="flex items-center gap-2">
-              <Link href="/user/profile">
+              <Link href="/user/profile" className="cursor-pointer">
                 <FaUserCircle size={24} className="text-gray-700" />
               </Link>
 
-              <Button variant="outline" onClick={() => signOut()}>
+              <Button
+                variant="outline"
+                onClick={() => signOut()}
+                className="cursor-pointer"
+              >
                 Logout
               </Button>
             </div>
           ) : (
-            <Button variant="outline">
+            <Button variant="outline" className="cursor-pointer">
               <Link href="/auth/user/signin">Login</Link>
             </Button>
           )}
