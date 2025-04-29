@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/app/lib/supabase";
 import Navbar from "../_components/Navbar";
+import Footer from "../_components/Footer";
 
 export default function BookPage() {
   const { data: session } = useSession();
@@ -142,6 +143,7 @@ export default function BookPage() {
           )}
         </div>
       </div>
+      <Footer />
     </>
   );
 }

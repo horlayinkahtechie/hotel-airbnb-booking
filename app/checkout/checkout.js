@@ -5,19 +5,24 @@ import { useState } from "react";
 import Navbar from "../_components/Navbar";
 import Image from "next/image";
 import Link from "next/link";
+import Footer from "../_components/Footer";
 
 export default function Checkout() {
   const searchParams = useSearchParams();
 
   const name = searchParams.get("name") || "";
   const location = searchParams.get("location") || "";
-  const priceString = searchParams.get("price") || "₦0"; // e.g. ₦80,000
+  const priceString = searchParams.get("price") || "₦0";
   const type = searchParams.get("type") || "";
   const image = searchParams.get("image") || "";
 
-  const priceNumber = Number(priceString.replace(/[^\d]/g, "")); // remove ₦ and commas
+  const priceNumber = Number(priceString.replace(/[^\d]/g, ""));
   const [days, setDays] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState("Paystack");
+  const [checkInDate, setCheckInDate] = useState("");
+  const [checkOutDate, setCheckOutDate] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [roomType, setRoomType] = useState("");
 
   const totalPrice = days * priceNumber;
 
@@ -36,19 +41,11 @@ export default function Checkout() {
               </label>
               <input
                 type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
                 placeholder="Enter your full name"
                 className="w-full border p-3 rounded-lg"
-              />
-            </div>
-
-            <div>
-              <label className="block text-lg font-semibold mb-2">
-                Email Address
-              </label>
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="w-full border p-3 rounded-lg"
+                required
               />
             </div>
 
@@ -62,8 +59,50 @@ export default function Checkout() {
                 value={days}
                 onChange={(e) => setDays(parseInt(e.target.value) || 1)}
                 className="w-full border p-3 rounded-lg"
+                required
               />
             </div>
+
+            <div>
+              <label className="block text-lg font-semibold mb-2">
+                Check in date
+              </label>
+              <input
+                type="date"
+                value={checkInDate}
+                onChange={(e) => setCheckInDate(e.target.value)}
+                className="w-full border p-3 rounded-lg"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-lg font-semibold mb-2">
+                Check out date
+              </label>
+              <input
+                type="date"
+                value={checkOutDate}
+                onChange={(e) => setCheckOutDate(e.target.value)}
+                required
+                className="w-full border p-3 rounded-lg"
+              />
+            </div>
+
+            {/* <div>
+              <label className="block text-lg font-semibold mb-2">
+                Room Type
+              </label>
+              <select
+                value={roomType}
+                onChange={(e) => setRoomType(e.target.value)}
+                className="w-full border p-3 rounded-lg"
+              >
+                <option value="Normal">Normal</option>
+                <option value="Standard">Standard</option>
+                <option value="Luxury">Luxury</option>
+              </select>
+            </div> */}
 
             <div>
               <label className="block text-lg font-semibold mb-2">
@@ -75,14 +114,24 @@ export default function Checkout() {
                 className="w-full border p-3 rounded-lg"
               >
                 <option value="Paystack">Paystack</option>
-                <option value="Stripe">Stripe</option>
-                <option value="Flutterwave">Flutterwave</option>
               </select>
             </div>
 
-            <button className="w-full mt-4 bg-green-600 hover:bg-green-700 transition-colors text-white font-semibold py-3 rounded-xl">
-              <Link href="/checkout/payment">Confirm and Pay</Link>
-            </button>
+            {checkInDate && checkOutDate && fullName ? (
+              <Link
+                href={`/checkout/payment?price=${totalPrice}`}
+                className="w-full mt-4 bg-green-600 hover:bg-green-700 transition-colors text-white font-semibold py-3 rounded-xl flex justify-center items-center"
+              >
+                Confirm and Pay
+              </Link>
+            ) : (
+              <button
+                disabled
+                className="w-full mt-4 bg-gray-400 text-white font-semibold py-3 rounded-xl flex justify-center items-center cursor-not-allowed"
+              >
+                Confirm and pay
+              </button>
+            )}
           </div>
 
           {/* RIGHT: Booking Summary */}
@@ -107,6 +156,7 @@ export default function Checkout() {
           </div>
         </div>
       </div>
+      <Footer />
     </>
   );
 }

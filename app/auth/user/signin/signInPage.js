@@ -1,5 +1,6 @@
 "use client";
 
+import Footer from "@/app/_components/Footer";
 import Navbar from "@/app/_components/Navbar";
 import { signIn } from "next-auth/react";
 import { FcGoogle } from "react-icons/fc";
@@ -28,6 +29,7 @@ export default function SignInPage() {
           </p>
         </div>
       </div>
+      <Footer />
     </>
   );
 }

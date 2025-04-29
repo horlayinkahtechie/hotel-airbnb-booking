@@ -3,6 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import Navbar from "../_components/Navbar";
+import Footer from "../_components/Footer";
 
 export default function AboutPage() {
   return (
@@ -67,6 +68,7 @@ export default function AboutPage() {
           </div>
         </section>
       </div>
+      <Footer />
     </>
   );
 }

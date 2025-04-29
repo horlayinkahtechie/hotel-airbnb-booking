@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import Navbar from "../_components/Navbar";
 import BookNowButton from "../_components/book";
+import Footer from "../_components/Footer";
 
 const listings = [
   {
@@ -92,13 +93,14 @@ export default function ExplorePage() {
                 </CardDescription>
                 <div className="flex items-center justify-between">
                   <p className="font-semibold">{listing.price} / night</p>
-                  <BookNowButton />
+                  <BookNowButton listing={listing} />
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       </div>
+      <Footer />
     </>
   );
 }
