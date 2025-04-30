@@ -15,6 +15,7 @@ export default function Checkout() {
   const priceString = searchParams.get("price") || "₦0";
   const type = searchParams.get("type") || "";
   const image = searchParams.get("image") || "";
+  const listing_id = searchParams.get("id");
 
   const priceNumber = Number(priceString.replace(/[^\d]/g, ""));
   const [days, setDays] = useState(1);
@@ -119,8 +120,20 @@ export default function Checkout() {
 
             {checkInDate && checkOutDate && fullName ? (
               <Link
-                href={`/checkout/payment?price=${totalPrice}`}
-                className="w-full mt-4 bg-green-600 hover:bg-green-700 transition-colors text-white font-semibold py-3 rounded-xl flex justify-center items-center"
+                href={{
+                  pathname: "/checkout/payment",
+                  query: {
+                    price: totalPrice,
+                    name: name,
+                    image: image,
+                    type: type,
+                    location: location,
+                    id: listing_id,
+                  },
+                }}
+                className="w-full mt-4 bg-green-600 hover:bg-green-700
+                transition-colors text-white font-semibold py-3 rounded-xl flex
+                justify-center items-center"
               >
                 Confirm and Pay
               </Link>

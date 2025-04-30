@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { PaystackButton } from "react-paystack";
 import { useRouter, useSearchParams } from "next/navigation";
+import { supabase } from "@/app/lib/supabase";
 import Footer from "@/app/_components/Footer";
 import Navbar from "@/app/_components/Navbar";
 
 export default function PaymentPage() {
+  const { data: session } = useSession();
   const [email, setEmail] = useState("");
 
   const router = useRouter();
@@ -15,19 +18,48 @@ export default function PaymentPage() {
   const priceString = searchParams.get("price") || "₦0";
   const priceNumber = Number(priceString.replace(/[^\d]/g, ""));
 
+  const name = searchParams.get("name") || "";
+  const location = searchParams.get("location") || "";
+  const type = searchParams.get("type") || "";
+  const image = searchParams.get("image") || "";
+  const listing_id = searchParams.get("id");
+
   const publicKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "";
 
+  const handleSuccess = async () => {
+    if (!session) {
+      alert("Please log in first to book.");
+      router.push("/payment_status/success");
+      return;
+    }
+
+    const { error } = await supabase.from("bookings").insert([
+      {
+        email: session.user.email,
+        listing_id,
+        listing_name: name,
+        location,
+        price: priceNumber,
+        type,
+        listing_img: image,
+        payment_status: "Paid",
+      },
+    ]);
+
+    if (error) {
+      console.error("Something went wrong", error);
+    } else {
+      console.log("Booking saved to database");
+    }
+  };
+
   const paymentProps = {
-    email,
+    email: session?.user?.email || email,
     amount: priceNumber * 100,
     publicKey,
     text: "Pay Now",
-    onSuccess: () => {
-      router.push("/payment_status/success");
-    },
-    onClose: () => {
-      router.push("/payment_status/decline");
-    },
+    onSuccess: handleSuccess,
+    onClose: () => router.push("/payment_status/decline"),
   };
 
   return (
@@ -47,18 +79,20 @@ export default function PaymentPage() {
               </span>
             </p>
 
-            <div className="space-y-2">
-              <label className="block text-gray-700 font-medium">
-                Email Address
-              </label>
-              <input
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-              />
-            </div>
+            {!session && (
+              <div className="space-y-2">
+                <label className="block text-gray-700 font-medium">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                />
+              </div>
+            )}
 
             <PaystackButton
               {...paymentProps}

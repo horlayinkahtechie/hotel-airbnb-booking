@@ -1,7 +1,6 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { supabase } from "@/app/lib/supabase";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -19,33 +18,16 @@ export default function BookNowButton({ listing }) {
     setLoading(true);
 
     try {
-      const { error } = await supabase.from("bookings").insert([
-        {
-          email: session.user.email,
-          listing_id: listing.id,
-          listing_name: listing.name,
-          location: listing.location,
-          price: listing.price,
-          type: listing.type,
-          listing_img: listing.image,
-        },
-      ]);
+      const params = new URLSearchParams({
+        name: listing.name,
+        location: listing.location,
+        price: listing.price.toString(),
+        type: listing.type,
+        image: listing.image,
+        listing_id: listing.id,
+      });
 
-      if (error) {
-        console.error(error);
-        alert(error.message || "Booking failed. Try again.");
-      } else {
-        // 👇 Use URLSearchParams for safer URL building
-        const params = new URLSearchParams({
-          name: listing.name,
-          location: listing.location,
-          price: listing.price.toString(),
-          type: listing.type,
-          image: listing.image,
-        });
-
-        router.push(`/checkout?${params.toString()}`);
-      }
+      router.push(`/checkout?${params.toString()}`);
     } catch (err) {
       console.error(err);
       alert("Something went wrong.");
