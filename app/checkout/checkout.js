@@ -46,10 +46,7 @@ export default function Checkout() {
       if (error) {
         console.error("Error fetching booked dates:", error);
         return;
-      } else {
-        console.log("Booked dates fetched successfully");
       }
-
       // Get all booked date ranges and flatten them into individual strings
       const dates = data.flatMap(({ checkin_date, checkout_date }) => {
         const start = new Date(checkin_date);
