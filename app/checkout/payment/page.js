@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { PaystackButton } from "react-paystack";
+import PaystackButton from "@/app/_components/DynamicPaystackButton";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/app/lib/supabase";
 import Footer from "@/app/_components/Footer";
