@@ -10,7 +10,7 @@ import BookNowButton from "./book";
 
 const listings = [
   {
-    id: 1,
+    id: "STANDARD1",
     type: "Hotel",
     roomType: "Standard",
     name: "Lagos Lagoon View Hotel",
@@ -20,7 +20,7 @@ const listings = [
   },
   {
     id: 2,
-    type: "Apartment",
+    type: "STANDARD2",
     roomType: "Standard",
     name: "Cozy Apartment",
     image: "/standard_room2.jpg",
@@ -28,7 +28,7 @@ const listings = [
     location: "Abuja, Nigeria",
   },
   {
-    id: 3,
+    id: "STANDARD3",
     type: "Shortlet",
     roomType: "Standard",
     name: "Beachside Shortlet",
@@ -37,7 +37,7 @@ const listings = [
     location: "Lekki, Lagos",
   },
   {
-    id: 4,
+    id: "STANDARD4",
     type: "Shortlet",
     roomType: "Standard",
     name: "Beachside Shortlet",

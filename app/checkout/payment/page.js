@@ -22,7 +22,11 @@ export default function PaymentPage() {
   const location = searchParams.get("location") || "";
   const type = searchParams.get("type") || "";
   const image = searchParams.get("image") || "";
-  const listing_id = searchParams.get("id");
+  const listing_id = searchParams.get("listing_id");
+  const [fullName] = useState(searchParams.get("full_name") || "");
+  const [checkinDate] = useState(searchParams.get("checkin_date") || null);
+  const [checkoutDate] = useState(searchParams.get("checkout_date") || null);
+  const [noOfDays] = useState(searchParams.get("no_of_days") || "");
 
   const publicKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "";
 
@@ -43,6 +47,10 @@ export default function PaymentPage() {
         type,
         listing_img: image,
         payment_status: "Paid",
+        full_name: fullName,
+        checkin_date: checkinDate,
+        checkout_date: checkoutDate,
+        no_of_days: noOfDays,
       },
     ]);
 

@@ -10,7 +10,7 @@ import BookNowButton from "./book";
 
 const listings = [
   {
-    id: 1,
+    id: "BASIC1",
     type: "Hotel",
     roomType: "Basic",
     name: "Basic room with dining table",
@@ -19,7 +19,7 @@ const listings = [
     location: "Lekki, Lagos",
   },
   {
-    id: 2,
+    id: "BASIC2",
     type: "Apartment",
     roomType: "Basic",
     name: "Cozy Apartment",
@@ -28,7 +28,7 @@ const listings = [
     location: "Abuja, Nigeria",
   },
   {
-    id: 3,
+    id: "BASIC3",
     type: "Shortlet",
     roomType: "Basic",
     name: "Beachside Shortlet",
@@ -37,7 +37,7 @@ const listings = [
     location: "Lekki, Lagos",
   },
   {
-    id: 4,
+    id: "BASIC4",
     type: "Shortlet",
     roomType: "Basic",
     name: "Beachside Shortlet",

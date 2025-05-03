@@ -1,11 +1,14 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "../_components/Navbar";
 import Image from "next/image";
 import Link from "next/link";
 import Footer from "../_components/Footer";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { supabase } from "../lib/supabase";
 
 export default function Checkout() {
   const searchParams = useSearchParams();
@@ -15,7 +18,7 @@ export default function Checkout() {
   const priceString = searchParams.get("price") || "₦0";
   const type = searchParams.get("type") || "";
   const image = searchParams.get("image") || "";
-  const listing_id = searchParams.get("id");
+  const listing_id = searchParams.get("listing_id");
 
   const priceNumber = Number(priceString.replace(/[^\d]/g, ""));
   const [days, setDays] = useState(1);
@@ -23,9 +26,60 @@ export default function Checkout() {
   const [checkInDate, setCheckInDate] = useState("");
   const [checkOutDate, setCheckOutDate] = useState("");
   const [fullName, setFullName] = useState("");
-  const [roomType, setRoomType] = useState("");
+  const [roomID] = useState(listing_id);
+
+  const [bookedDates, setBookedDates] = useState([]);
+
+  const disabledDates = bookedDates.map((dateStr) => new Date(dateStr));
 
   const totalPrice = days * priceNumber;
+
+  useEffect(() => {
+    async function fetchBookedDates() {
+      if (!listing_id) return;
+
+      const { data, error } = await supabase
+        .from("bookings")
+        .select("checkin_date, checkout_date")
+        .eq("listing_id", listing_id);
+
+      if (error) {
+        console.error("Error fetching booked dates:", error);
+        return;
+      } else {
+        console.log("Booked dates fetched successfully");
+      }
+
+      // Get all booked date ranges and flatten them into individual strings
+      const dates = data.flatMap(({ checkin_date, checkout_date }) => {
+        const start = new Date(checkin_date);
+        const end = new Date(checkout_date);
+        const tempDates = [];
+
+        while (start <= end) {
+          tempDates.push(new Date(start).toISOString().split("T")[0]);
+          start.setDate(start.getDate() + 1);
+        }
+
+        return tempDates;
+      });
+
+      setBookedDates(dates);
+    }
+
+    fetchBookedDates();
+  }, [roomID]);
+
+  useEffect(() => {
+    if (checkInDate && days > 0) {
+      const checkIn = new Date(checkInDate);
+      const checkOut = new Date(checkIn);
+      checkOut.setDate(checkOut.getDate() + days);
+
+      const formattedCheckOut = checkOut.toISOString().split("T")[0];
+      setCheckOutDate(formattedCheckOut);
+    }
+  }, [checkInDate, days]);
 
   return (
     <>
@@ -52,6 +106,21 @@ export default function Checkout() {
 
             <div>
               <label className="block text-lg font-semibold mb-2">
+                Check in date
+              </label>
+              <DatePicker
+                selected={checkInDate ? new Date(checkInDate) : null}
+                onChange={(date) => setCheckInDate(date)}
+                excludeDates={disabledDates}
+                type="date"
+                value={checkInDate}
+                className="w-full border p-3 rounded-lg"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-lg font-semibold mb-2">
                 Number of Days
               </label>
               <input
@@ -66,44 +135,30 @@ export default function Checkout() {
 
             <div>
               <label className="block text-lg font-semibold mb-2">
-                Check in date
-              </label>
-              <input
-                type="date"
-                value={checkInDate}
-                onChange={(e) => setCheckInDate(e.target.value)}
-                className="w-full border p-3 rounded-lg"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-lg font-semibold mb-2">
                 Check out date
               </label>
               <input
                 type="date"
                 value={checkOutDate}
                 onChange={(e) => setCheckOutDate(e.target.value)}
+                readOnly
                 required
                 className="w-full border p-3 rounded-lg"
               />
             </div>
 
-            {/* <div>
+            <div>
               <label className="block text-lg font-semibold mb-2">
-                Room Type
+                Room ID
               </label>
-              <select
-                value={roomType}
-                onChange={(e) => setRoomType(e.target.value)}
+              <input
+                readOnly
+                type="text"
+                value={roomID}
+                required
                 className="w-full border p-3 rounded-lg"
-              >
-                <option value="Normal">Normal</option>
-                <option value="Standard">Standard</option>
-                <option value="Luxury">Luxury</option>
-              </select>
-            </div> */}
+              />
+            </div>
 
             <div>
               <label className="block text-lg font-semibold mb-2">
@@ -128,7 +183,11 @@ export default function Checkout() {
                     image: image,
                     type: type,
                     location: location,
-                    id: listing_id,
+                    listing_id: listing_id,
+                    full_name: fullName,
+                    checkout_date: checkOutDate,
+                    checkin_date: checkInDate,
+                    no_of_days: days,
                   },
                 }}
                 className="w-full mt-4 bg-green-600 hover:bg-green-700
@@ -157,7 +216,9 @@ export default function Checkout() {
             <div>
               <h2 className="text-2xl font-semibold">{name}</h2>
               <p className="text-gray-500">{location}</p>
-              <p className="text-gray-700 mt-2">{type}</p>
+              <p className="text-gray-700 mt-2">
+                {type} ({roomID})
+              </p>
               <p className="text-lg mt-4">
                 Price per night: <strong>{priceString}</strong>
               </p>
