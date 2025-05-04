@@ -9,7 +9,6 @@ import Footer from "../_components/Footer";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { supabase } from "../lib/supabase";
-import { Import } from "lucide-react";
 import dynamic from "next/dynamic";
 
 const PaymentPage = dynamic(() => import("./payment/PaymentComponent"), {
@@ -24,21 +23,19 @@ export default function Checkout() {
   const priceString = searchParams.get("price") || "₦0";
   const type = searchParams.get("type") || "";
   const image = searchParams.get("image") || "";
-  const listing_id = searchParams.get("listing_id");
+  const listing_id = searchParams.get("listing_id") || "";
 
   const priceNumber = Number(priceString.replace(/[^\d]/g, ""));
   const [days, setDays] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState("Paystack");
-  const [checkInDate, setCheckInDate] = useState("");
+  const [checkInDate, setCheckInDate] = useState(null);
   const [checkOutDate, setCheckOutDate] = useState("");
   const [fullName, setFullName] = useState("");
-  const [roomID] = useState(listing_id);
-
   const [bookedDates, setBookedDates] = useState([]);
 
-  const disabledDates = bookedDates.map((dateStr) => new Date(dateStr));
-
   const totalPrice = days * priceNumber;
+
+  const stringToDate = (str) => new Date(str + "T00:00:00");
 
   useEffect(() => {
     async function fetchBookedDates() {
@@ -51,16 +48,17 @@ export default function Checkout() {
 
       if (error) {
         console.error("Error fetching booked dates:", error);
-        return;
+      } else {
+        console.log("Booked Room fetched succesfully");
       }
-      // Get all booked date ranges and flatten them into individual strings
+
       const dates = data.flatMap(({ checkin_date, checkout_date }) => {
-        const start = new Date(checkin_date);
-        const end = new Date(checkout_date);
+        const start = stringToDate(checkin_date);
+        const end = stringToDate(checkout_date);
         const tempDates = [];
 
         while (start <= end) {
-          tempDates.push(new Date(start).toISOString().split("T")[0]);
+          tempDates.push(new Date(start));
           start.setDate(start.getDate() + 1);
         }
 
@@ -71,16 +69,15 @@ export default function Checkout() {
     }
 
     fetchBookedDates();
-  }, [roomID]);
+  }, [listing_id]);
 
   useEffect(() => {
     if (checkInDate && days > 0) {
-      const checkIn = new Date(checkInDate);
-      const checkOut = new Date(checkIn);
-      checkOut.setDate(checkOut.getDate() + days);
-
-      const formattedCheckOut = checkOut.toISOString().split("T")[0];
-      setCheckOutDate(formattedCheckOut);
+      const out = new Date(checkInDate);
+      out.setDate(out.getDate() + days);
+      setCheckOutDate(out.toISOString().split("T")[0]);
+    } else {
+      setCheckOutDate("");
     }
   }, [checkInDate, days]);
 
@@ -109,16 +106,15 @@ export default function Checkout() {
 
             <div>
               <label className="block text-lg font-semibold mb-2">
-                Check in date
+                Check-in Date
               </label>
               <DatePicker
-                selected={checkInDate ? new Date(checkInDate) : null}
+                selected={checkInDate}
                 onChange={(date) => setCheckInDate(date)}
-                excludeDates={disabledDates}
-                type="date"
-                value={checkInDate}
+                excludeDates={bookedDates}
+                minDate={new Date()}
+                placeholderText="Select a check-in date"
                 className="w-full border p-3 rounded-lg"
-                required
               />
             </div>
 
@@ -130,23 +126,22 @@ export default function Checkout() {
                 type="number"
                 min={1}
                 value={days}
-                onChange={(e) => setDays(parseInt(e.target.value) || 1)}
+                onChange={(e) =>
+                  setDays(Math.max(1, parseInt(e.target.value) || 1))
+                }
                 className="w-full border p-3 rounded-lg"
-                required
               />
             </div>
 
             <div>
               <label className="block text-lg font-semibold mb-2">
-                Check out date
+                Check-out Date
               </label>
               <input
-                type="date"
-                value={checkOutDate}
-                onChange={(e) => setCheckOutDate(e.target.value)}
+                type="text"
                 readOnly
-                required
-                className="w-full border p-3 rounded-lg"
+                value={checkOutDate}
+                className="w-full border p-3 rounded-lg bg-gray-100"
               />
             </div>
 
@@ -157,9 +152,8 @@ export default function Checkout() {
               <input
                 readOnly
                 type="text"
-                value={roomID}
-                required
-                className="w-full border p-3 rounded-lg"
+                value={listing_id}
+                className="w-full border p-3 rounded-lg bg-gray-100"
               />
             </div>
 
@@ -182,20 +176,18 @@ export default function Checkout() {
                   pathname: "/checkout/payment",
                   query: {
                     price: totalPrice,
-                    name: name,
-                    image: image,
-                    type: type,
-                    location: location,
-                    listing_id: listing_id,
+                    name,
+                    image,
+                    type,
+                    location,
+                    listing_id,
                     full_name: fullName,
                     checkout_date: checkOutDate,
-                    checkin_date: checkInDate,
+                    checkin_date: checkInDate.toISOString().split("T")[0],
                     no_of_days: days,
                   },
                 }}
-                className="w-full mt-4 bg-green-600 hover:bg-green-700
-                transition-colors text-white font-semibold py-3 rounded-xl flex
-                justify-center items-center"
+                className="w-full mt-4 bg-green-600 hover:bg-green-700 transition-colors text-white font-semibold py-3 rounded-xl flex justify-center items-center"
               >
                 Confirm and Pay
               </Link>
@@ -204,7 +196,7 @@ export default function Checkout() {
                 disabled
                 className="w-full mt-4 bg-gray-400 text-white font-semibold py-3 rounded-xl flex justify-center items-center cursor-not-allowed"
               >
-                Confirm and pay
+                Confirm and Pay
               </button>
             )}
           </div>
@@ -220,7 +212,7 @@ export default function Checkout() {
               <h2 className="text-2xl font-semibold">{name}</h2>
               <p className="text-gray-500">{location}</p>
               <p className="text-gray-700 mt-2">
-                {type} ({roomID})
+                {type} ({listing_id})
               </p>
               <p className="text-lg mt-4">
                 Price per night: <strong>{priceString}</strong>

@@ -15,7 +15,7 @@ const handler = NextAuth({
   callbacks: {
     async signIn({ user }) {
       console.log("User signed in:", user);
-      return true; // Always allow sign-in
+      return true;
     },
   },
 });
