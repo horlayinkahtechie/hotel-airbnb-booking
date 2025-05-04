@@ -9,6 +9,12 @@ import Footer from "../_components/Footer";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { supabase } from "../lib/supabase";
+import { Import } from "lucide-react";
+import dynamic from "next/dynamic";
+
+const PaymentPage = dynamic(() => import("./payment/PaymentComponent"), {
+  ssr: false,
+});
 
 export default function Checkout() {
   const searchParams = useSearchParams();
