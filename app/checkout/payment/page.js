@@ -1,9 +1,12 @@
+import { Suspense } from "react";
 import PaymentComponent from "./PaymentComponent";
 
 export default function paymentPage() {
   return (
     <div>
-      <PaymentComponent />
+      <Suspense>
+        <PaymentComponent />
+      </Suspense>
     </div>
   );
 }
