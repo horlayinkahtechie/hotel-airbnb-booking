@@ -67,7 +67,7 @@ export default function LuxuryListingCard() {
               <Image
                 src={listing.image}
                 alt={listing.name}
-                quality={70}
+                quality={60}
                 width={400}
                 height={250}
                 className="object-cover w-full lg:h-56 h-70"
