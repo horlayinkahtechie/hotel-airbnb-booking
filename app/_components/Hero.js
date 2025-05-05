@@ -1,10 +1,11 @@
 import Image from "next/image";
+import apartment3 from "@/public/Apartment3.jpg";
 
 export default function Hero() {
   return (
     <section className="relative w-full h-[100vh] flex items-center justify-center p-2 overflow-hidden">
       <Image
-        src="/Apartment3.jpg"
+        src={apartment3}
         alt="Hero Background"
         fill
         className="object-cover object-center z-0"
