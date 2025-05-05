@@ -57,7 +57,7 @@ export default function LuxuryListingCard() {
         Discover top-rated luxury rooms, apartments, and shortlets across. Book
         your perfect stay that accomodates everything.
       </p>
-      <div className="grid lg:grid-cols-4 grid-cols-1 lg:p-30 p-3 lg:pt-20 gap-5">
+      <div className="grid lg:grid-cols-4 grid-cols-1 lg:p-30 p-1 lg:pt-20 gap-5">
         {listings.map((listing) => (
           <Card
             key={listing.id}
