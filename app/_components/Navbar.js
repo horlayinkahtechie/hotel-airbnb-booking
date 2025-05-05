@@ -37,12 +37,19 @@ export default function Navbar() {
               <Link href="/user/profile">
                 <FaUserCircle size={24} className="text-gray-700" />
               </Link>
-              <Button variant="outline" onClick={() => signOut()}>
+              <Button
+                variant="outline"
+                className="hover:bg-black hover:outline-0"
+                onClick={() => signOut()}
+              >
                 Logout
               </Button>
             </div>
           ) : (
-            <Button variant="outline">
+            <Button
+              variant="outline"
+              className="hover:bg-black hover:outline-0"
+            >
               <Link href="/auth/user/signin">Login</Link>
             </Button>
           )}
@@ -90,6 +97,7 @@ export default function Navbar() {
               </Link>
               <Button
                 variant="outline"
+                className="hover:bg-black hover:outline-0"
                 onClick={() => {
                   signOut();
                   toggleSidebar();
@@ -99,7 +107,11 @@ export default function Navbar() {
               </Button>
             </>
           ) : (
-            <Button variant="outline" onClick={toggleSidebar}>
+            <Button
+              variant="outline"
+              onClick={toggleSidebar}
+              className="hover:bg-black hover:outline-0"
+            >
               <Link href="/auth/user/signin">Login</Link>
             </Button>
           )}
