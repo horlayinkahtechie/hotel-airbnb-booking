@@ -15,25 +15,28 @@ import Footer from "../_components/Footer";
 
 const listings = [
   {
-    id: 1,
+    id: "BASIC1",
     type: "Hotel",
     name: "Luxe Grand Hotel",
+    roomType: "Basic",
     image: "/luxe-grand.jpg",
     price: "₦30,000",
     location: "Victoria Island, Lagos",
   },
   {
-    id: 2,
+    id: "BASIC2",
     type: "Apartment",
     name: "Palmview Apartment",
     image: "/palmview.jpg",
+    roomType: "Basic",
     price: "₦20,000",
     location: "Lekki Phase 1, Lagos",
   },
   {
-    id: 3,
+    id: "STANDARD1",
     type: "Shortlet",
     name: "Oceanview Shortlet",
+    roomType: "Standard",
     image: "/Apartment2.jpg",
     price: "₦15,000",
     location: "Ajah, Lagos",
@@ -52,9 +55,7 @@ export default function ExplorePage() {
     <>
       <Navbar />
       <div className="px-4 py-10 max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6 text-center">
-          Explore Properties
-        </h1>
+        <h1 className="text-3xl font-bold mb-6 text-center">Explore Rooms</h1>
 
         {/* Filter Tabs */}
         <Tabs defaultValue="All" className="mb-8">
@@ -75,27 +76,27 @@ export default function ExplorePage() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredListings.map((listing) => (
             <Card key={listing.id}>
-              <div className="relative w-full h-56 rounded-t-xl overflow-hidden">
+              <div>
                 <Image
                   src={listing.image}
                   alt={listing.name}
-                  quality={100}
+                  quality={70}
                   width={400}
                   height={250}
-                  className="object-cover"
+                  className="object-cover w-full lg:h-56 h-70"
                 />
-              </div>
+                <CardContent className="py-4">
+                  <CardTitle className="text-lg">{listing.name}</CardTitle>
+                  <CardDescription className="mb-2 text-[15.5px]">
+                    {listing.location} ({listing.roomType})
+                  </CardDescription>
 
-              <CardContent className="py-4">
-                <CardTitle className="text-lg">{listing.name}</CardTitle>
-                <CardDescription className="mb-2">
-                  {listing.location}
-                </CardDescription>
-                <div className="flex items-center justify-between">
-                  <p className="font-semibold">{listing.price} / night</p>
-                  <BookNowButton listing={listing} />
-                </div>
-              </CardContent>
+                  <div className="flex items-center justify-between">
+                    <p className="font-semibold">{listing.price} / night</p>
+                    <BookNowButton listing={listing} />
+                  </div>
+                </CardContent>
+              </div>
             </Card>
           ))}
         </div>

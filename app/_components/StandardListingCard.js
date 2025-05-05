@@ -70,7 +70,7 @@ export default function ListingCard() {
                 quality={70}
                 width={400}
                 height={250}
-                className="object-cover w-full h-56"
+                className="object-cover w-full lg:h-56 h-70"
               />
               <CardContent className="py-4">
                 <CardTitle className="text-lg">{listing.name}</CardTitle>
