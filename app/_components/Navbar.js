@@ -61,7 +61,9 @@ export default function Navbar() {
         } md:hidden`}
       >
         <div className="p-4 border-b flex justify-between items-center">
-          <h2 className="text-xl font-bold text-primary">Menu</h2>
+          <Link href="/" className="text-xl font-bold text-primary">
+            BookNest
+          </Link>
           <button onClick={toggleSidebar}>
             <HiX size={24} />
           </button>
