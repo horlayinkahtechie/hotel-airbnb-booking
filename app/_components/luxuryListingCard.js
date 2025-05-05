@@ -49,15 +49,15 @@ const listings = [
 
 export default function LuxuryListingCard() {
   return (
-    <>
-      <h2 className="text-2xl md:text-3xl text-center mt-40 font-bold mb-2">
+    <div className="p-3">
+      <h2 className="text-2xl md:text-3xl text-center lg:mt-5 mt-20 font-bold mb-3">
         Luxury Listings
       </h2>
-      <p className="text-gray-600 text-center text-[20px]">
+      <p className="text-gray-600 text-center lg:text-[20px] text-[19px] lg:mb-1 mb-10">
         Discover top-rated luxury rooms, apartments, and shortlets across. Book
         your perfect stay that accomodates everything.
       </p>
-      <div className="grid lg:grid-cols-4 grid-cols-1 lg:p-30 lg:pt-20 gap-5">
+      <div className="grid lg:grid-cols-4 grid-cols-1 lg:p-30 p-3 lg:pt-20 gap-5">
         {listings.map((listing) => (
           <Card
             key={listing.id}
@@ -70,7 +70,7 @@ export default function LuxuryListingCard() {
                 quality={70}
                 width={400}
                 height={250}
-                className="object-cover w-full h-56"
+                className="object-cover w-full lg:h-56 h-70"
               />
               <CardContent className="py-4">
                 <CardTitle className="text-lg">{listing.name}</CardTitle>
@@ -87,6 +87,6 @@ export default function LuxuryListingCard() {
           </Card>
         ))}
       </div>
-    </>
+    </div>
   );
 }

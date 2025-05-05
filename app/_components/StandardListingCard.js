@@ -49,15 +49,15 @@ const listings = [
 
 export default function ListingCard() {
   return (
-    <>
-      <h2 className="text-2xl md:text-3xl text-center mt-40 font-bold mb-2">
+    <div className="p-3">
+      <h2 className="text-2xl md:text-3xl text-center lg:mt-5 mt-20 font-bold mb-3">
         Standard Listings
       </h2>
-      <p className="text-gray-600 text-center text-[20px]">
+      <p className="text-gray-600 text-center lg:text-[20px] text-[19px] lg:mb-1 mb-10">
         Discover top-rated standard rooms, apartments, and shortlets across.
         Book your perfect stay with just a few clicks.
       </p>
-      <div className="grid lg:grid-cols-4 grid-cols-1 lg:p-30 lg:pt-20 gap-5">
+      <div className="grid lg:grid-cols-4 grid-cols-1 lg:p-30 p-3 lg:pt-20 gap-5">
         {listings.map((listing) => (
           <Card
             key={listing.id}
@@ -87,6 +87,6 @@ export default function ListingCard() {
           </Card>
         ))}
       </div>
-    </>
+    </div>
   );
 }
