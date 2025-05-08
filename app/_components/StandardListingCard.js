@@ -61,7 +61,7 @@ export default function ListingCard() {
         {listings.map((listing) => (
           <Card
             key={listing.id}
-            className=" overflow-hidden shadow-md hover:shadow-lg transition"
+            className="overflow-hidden shadow-md hover:shadow-lg transition"
           >
             <div>
               <Image

@@ -16,7 +16,7 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="w-full px-4 py-4 flex justify-between items-center border-b shadow-sm">
+      <header className="w-full px-4 py-4 flex justify-between items-center shadow-sm">
         <Link href="/" className="text-xl font-bold text-primary">
           BookNest
         </Link>
@@ -39,7 +39,7 @@ export default function Navbar() {
               </Link>
               <Button
                 variant="outline"
-                className="hover:bg-black hover:outline-0"
+                className="hover:bg-black hover:outline-0 hover:text-white cursor-pointer"
                 onClick={() => signOut()}
               >
                 Logout
@@ -48,7 +48,7 @@ export default function Navbar() {
           ) : (
             <Button
               variant="outline"
-              className="hover:bg-black hover:outline-0"
+              className="hover:bg-black hover:outline-0 hover:text-white cursor-pointer"
             >
               <Link href="/auth/user/signin">Login</Link>
             </Button>
@@ -97,7 +97,7 @@ export default function Navbar() {
               </Link>
               <Button
                 variant="outline"
-                className="hover:bg-black hover:outline-0"
+                className="hover:bg-black hover:outline-0 hover:text-white cursor-pointer"
                 onClick={() => {
                   signOut();
                   toggleSidebar();
@@ -110,7 +110,7 @@ export default function Navbar() {
             <Button
               variant="outline"
               onClick={toggleSidebar}
-              className="hover:bg-black hover:outline-0"
+              className="hover:bg-black hover:outline-0 hover:text-white cursor-pointer"
             >
               <Link href="/auth/user/signin">Login</Link>
             </Button>

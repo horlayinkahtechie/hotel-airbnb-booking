@@ -75,7 +75,10 @@ export default function ExplorePage() {
         {/* Listings Grid */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredListings.map((listing) => (
-            <Card key={listing.id}>
+            <Card
+              key={listing.id}
+              className="overflow-hidden shadow-md hover:shadow-lg transition"
+            >
               <div>
                 <Image
                   src={listing.image}
