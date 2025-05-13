@@ -5,12 +5,6 @@ import Link from "next/link";
 import Navbar from "../_components/Navbar";
 import Footer from "../_components/Footer";
 
-export const metadata = {
-  title: "About BookNest",
-  description:
-    "Booknest is a modern hotel with different ranges of room. Booknest also have a booking system to allow customers to book from their comfort",
-};
-
 export default function AboutPage() {
   return (
     <>
