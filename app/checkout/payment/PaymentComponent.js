@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/app/lib/supabase";
 import Footer from "@/app/_components/Footer";
 import Navbar from "@/app/_components/Navbar";
+import emailjs from "@emailjs/browser";
 
 export default function PaymentComponent() {
   const { data: session } = useSession();
@@ -33,7 +34,6 @@ export default function PaymentComponent() {
   const handleSuccess = async () => {
     if (!session) {
       alert("Please log in first to book.");
-      router.push("/payment_status/success");
       return;
     }
 
@@ -54,6 +54,32 @@ export default function PaymentComponent() {
       },
     ]);
 
+    // Send confirmation email
+    emailjs
+      .send(
+        process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID, //Service ID
+        process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID, //Template ID
+        {
+          firstName,
+          lastName,
+          email,
+          reservationDate: formatDate(reservationDate),
+          reservationTime,
+          noOfGuests,
+          noOfReservedSeat,
+          specialRequests,
+        },
+        process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY // (user ID)
+      )
+      .then(
+        (result) => {
+          console.log("Confirmation Email sent successfully!");
+        },
+        (error) => {
+          console.error("Failed to send confirmation email", error);
+        }
+      );
+
     if (error) {
       console.error("Something went wrong", error);
     } else {
@@ -66,7 +92,7 @@ export default function PaymentComponent() {
     amount: priceNumber * 100,
     publicKey,
     text: "Pay Now",
-    onSuccess: handleSuccess,
+    onSuccess: () => router.push("/payment_status/success"),
     onClose: () => router.push("/payment_status/decline"),
   };
 

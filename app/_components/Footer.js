@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="bg-gray-100 py-8 pb-[13px] text-center text-gray-500">
+    <footer className="bg-gray-100 py-8 pb-[13px] text-center mt-10 text-gray-500">
       <div className="grid lg:grid-cols-3 grid-cols-1 gap-5">
         <div className="w-80">
           <h3 className="font-bold mb-2 text-gray-800">QUICK LINKS</h3>

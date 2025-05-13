@@ -12,6 +12,7 @@ import {
 import Navbar from "../_components/Navbar";
 import BookNowButton from "../_components/book";
 import Footer from "../_components/Footer";
+import AddToFavorite from "../_components/AddToFavorite";
 
 const listings = [
   {
@@ -74,8 +75,9 @@ export default function ExplorePage() {
           {filteredListings.map((listing) => (
             <Card
               key={listing.id}
-              className="overflow-hidden shadow-md hover:shadow-lg transition"
+              className="relative overflow-hidden shadow-md hover:shadow-lg transition"
             >
+              <AddToFavorite />
               <div>
                 <Image
                   src={listing.image}

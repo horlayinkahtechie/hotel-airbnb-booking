@@ -7,6 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import BookNowButton from "./book";
+import AddToFavorite from "./AddToFavorite";
 
 const listings = [
   {
@@ -61,8 +62,9 @@ export default function LuxuryListingCard() {
         {listings.map((listing) => (
           <Card
             key={listing.id}
-            className=" overflow-hidden shadow-md hover:shadow-lg transition"
+            className="relative overflow-hidden shadow-md hover:shadow-lg transition"
           >
+            <AddToFavorite favorite={listing} />
             <div>
               <Image
                 src={listing.image}
