@@ -2,77 +2,101 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="bg-gray-100 py-8 pb-[13px] text-center mt-10 text-gray-500">
-      <div className="grid lg:grid-cols-3 grid-cols-1 gap-5">
-        <div className="w-80">
-          <h3 className="font-bold mb-2 text-gray-800">QUICK LINKS</h3>
-          <ul className="list-none">
-            <li className="list-item">
-              <Link href="/aboutus">About us</Link>
-            </li>
-            <li className="list-item">
-              <Link href="/explore">Explore Rooms</Link>
-            </li>
-            <li className="list-item">
-              <Link href="/book">Book a Room</Link>
-            </li>
-            <li className="list-item">
-              <Link href="/user/login">Log In</Link>
-            </li>
-            <li className="list-item">
-              <Link href="/user/profile">Your Profile</Link>
-            </li>
-          </ul>
-        </div>
-
-        <div className="w-80">
-          <h3 className="font-bold mb-2 text-gray-800">CONTACT US</h3>
-          <ul className="list-none">
-            <li className="list-item">
-              <p>
-                4, Hill Valley estate, Phase 3, abule oko, Olaogun, Lagos state.
-              </p>
-            </li>
-            <li className="list-item">
-              <p>08924092333, 0931948232</p>
-            </li>
-            <li className="list-item">
-              <p>contact@gmail.com</p>
-            </li>
-          </ul>
-        </div>
-
-        <div className="w-80">
-          <h3 className="text-[23px] mb-1 text-gray-800 font-medium text-start">
-            STAY IN TOUCH
+    <footer className="bg-gray-100 py-12 px-6 text-gray-600">
+      <div className="max-w-7xl mx-auto grid gap-10 md:grid-cols-3 sm:grid-cols-2 grid-cols-1">
+        {/* QUICK LINKS */}
+        <div>
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">
+            Quick Links
           </h3>
-          <p className="text-start mb-4 text-[18px] w-100">
-            Subscribe to our newsletter for the latest news, events and updates.
-          </p>
+          <ul className="space-y-2">
+            <li>
+              <Link href="/aboutus" className="hover:text-blue-600 transition">
+                About us
+              </Link>
+            </li>
+            <li>
+              <Link href="/explore" className="hover:text-blue-600 transition">
+                Explore Rooms
+              </Link>
+            </li>
+            <li>
+              <Link href="/book" className="hover:text-blue-600 transition">
+                Book a Room
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/user/login"
+                className="hover:text-blue-600 transition"
+              >
+                Log In
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/user/profile"
+                className="hover:text-blue-600 transition"
+              >
+                Your Profile
+              </Link>
+            </li>
+          </ul>
+        </div>
 
-          <input
-            type="email"
-            className="block border p-3 rounded w-100 hover:shadow"
-            required
-            placeholder="Enter your Email"
-          />
-          <button
-            type="submit"
-            className="block bg-gray-800 text-white rounded px-5 py-2 mt-5 hover:bg-gray-700 cursor-pointer transition w-100 text-[17.4px]"
+        {/* CONTACT */}
+        <div>
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">
+            Contact Us
+          </h3>
+          <ul className="space-y-2 text-sm">
+            <li>
+              4, Hill Valley Estate, Phase 3, Abule Oko, Olaogun, Lagos State.
+            </li>
+            <li>📞 08924092333, 0931948232</li>
+            <li>✉️ contact@gmail.com</li>
+          </ul>
+        </div>
+
+        {/* NEWSLETTER */}
+        <div>
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">
+            Stay in Touch
+          </h3>
+          <p className="text-sm mb-4">
+            Subscribe to our newsletter for updates and offers.
+          </p>
+          <form
+            onSubmit={(e) => e.preventDefault()}
+            className="flex flex-col gap-3"
           >
-            Subscribe
-          </button>
+            <input
+              type="email"
+              className="border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter your email"
+              required
+            />
+            <button
+              type="submit"
+              className="bg-blue-600 text-white rounded-md py-2 hover:bg-blue-700 transition"
+            >
+              Subscribe
+            </button>
+          </form>
         </div>
       </div>
-      <div className="mt-10">
-        <p className="text-[18px]">
-          Discover top-rated standard rooms, apartments, and shortlets across.
-          Book your perfect stay with just a few clicks.
+
+      {/* Bottom text */}
+      <div className="mt-12 text-center text-sm text-gray-500 border-t pt-6">
+        <p className="mb-2">
+          Discover top-rated standard rooms, apartments, and shortlets. Book
+          your perfect stay with just a few clicks.
+        </p>
+        <p>
+          &copy; {new Date().getFullYear()}{" "}
+          <span className="font-semibold">BookNest</span>. All rights reserved.
         </p>
       </div>
-      <p className="mt-5">
-        &copy; {new Date().getFullYear()} BookNest. All rights reserved.
-      </p>
     </footer>
   );
 }

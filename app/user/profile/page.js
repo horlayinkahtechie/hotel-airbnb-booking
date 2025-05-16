@@ -85,17 +85,25 @@ export default function Profile() {
 
         <Tabs defaultValue="bookings" className="w-full">
           <TabsList className="grid grid-cols-4 w-full mb-4">
-            <TabsTrigger value="bookings">Bookings</TabsTrigger>
-            <TabsTrigger value="favorites">Favorites</TabsTrigger>
-            <TabsTrigger value="reviews">Reviews</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
+            <TabsTrigger value="bookings" className="cursor-pointer">
+              Bookings
+            </TabsTrigger>
+            <TabsTrigger value="favorites" className="cursor-pointer">
+              Favorites
+            </TabsTrigger>
+            <TabsTrigger value="reviews" className="cursor-pointer">
+              Reviews
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="cursor-pointer">
+              Settings
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="bookings">
             <Card>
               <CardContent className="p-4">
                 {loading ? (
-                  <Spinner />
+                  <Spinner className="w-" />
                 ) : userBookings.length > 0 ? (
                   userBookings.map((booking) => (
                     <BookingCard key={booking.id} booking={booking} />

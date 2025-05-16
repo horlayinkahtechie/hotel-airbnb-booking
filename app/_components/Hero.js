@@ -14,6 +14,7 @@ export default function Hero() {
       />
 
       {/* Overlay */}
+
       <div className="absolute rounded-[10px] bg-white/70 backdrop-blur z-10 flex items-center justify-center">
         <div className="lg:p-20 p-10 rounded-xl text-center max-w-2xl">
           <h1 className="text-4xl font-bold mb-4">Find your perfect stay</h1>
