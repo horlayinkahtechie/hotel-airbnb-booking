@@ -1,3 +1,4 @@
+"use client";
 import Link from "next/link";
 import Navbar from "../_components/Navbar";
 import Footer from "../_components/Footer";
@@ -20,12 +21,12 @@ export default function Success() {
             href="/explore"
             className="inline-block bg-green-600 hover:bg-green-700 transition-colors text-white font-semibold py-3 px-6 rounded-lg"
           >
-            Reserve More
+            Book a room
           </Link>
 
           <p className="text-gray-500 text-sm mt-6">
             Want to make another booking?{" "}
-            <Link href="/reservation" className="text-green-600 underline">
+            <Link href="/explore" className="text-green-600 underline">
               Browse Listings
             </Link>
           </p>

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import apartment3 from "@/public/Apartment3.jpg";
 
 export default function Hero() {
@@ -14,18 +15,17 @@ export default function Hero() {
       />
 
       {/* Overlay */}
-
       <div className="absolute rounded-[10px] bg-white/70 backdrop-blur z-10 flex items-center justify-center">
         <div className="lg:p-20 p-10 rounded-xl text-center max-w-2xl">
           <h1 className="text-4xl font-bold mb-4">Find your perfect stay</h1>
-          <p className="text-gray-700 mb-6">
-            Hotels, Apartments, and Shortlets — all in one place.
+          <p className="text-gray-700 mb-6 text-[18px]">
+            Rooms tailored for your comfort — book your perfect stay today.
           </p>
-          <input
-            type="text"
-            placeholder="Search hotel or shortlet"
-            className="px-4 py-2 w-full rounded-md border focus:outline-none focus:ring"
-          />
+          <Link href="/reservation" className="w-full">
+            <button className="bg-blue-600 w-full text-[18.5px] cursor-pointer hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-md transition duration-300">
+              Reserve a room
+            </button>
+          </Link>
         </div>
       </div>
     </section>
