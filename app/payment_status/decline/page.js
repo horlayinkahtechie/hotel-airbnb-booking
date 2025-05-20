@@ -1,3 +1,4 @@
+"use client";
 import Link from "next/link";
 import Navbar from "@/app/_components/Navbar";
 import Footer from "@/app/_components/Footer";
