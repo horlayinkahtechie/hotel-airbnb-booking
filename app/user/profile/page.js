@@ -15,10 +15,12 @@ export default function Profile() {
   const { data: session } = useSession();
   const [userBookings, setUserBookings] = useState([]);
   const [userFavorites, setUserFavorites] = useState([]);
+  const [userReservations, setUserReservations] = useState([]);
   const [loading, setIsLoading] = useState(false);
 
   const user = session?.user;
 
+  // User bookings
   useEffect(() => {
     async function fetchUserBookings() {
       setIsLoading(true);
@@ -42,6 +44,7 @@ export default function Profile() {
     fetchUserBookings();
   }, [session]);
 
+  // User Favorites
   useEffect(() => {
     async function fetchUserFavorites() {
       setIsLoading(true);
@@ -63,6 +66,30 @@ export default function Profile() {
     }
 
     fetchUserFavorites();
+  }, [session]);
+
+  // User Reservations
+  useEffect(() => {
+    async function fetchUserReservations() {
+      setIsLoading(true);
+      if (!session?.user?.email) return;
+
+      const { data, error } = await supabase
+        .from("reservations")
+        .select("*")
+        .eq("email", session.user.email);
+
+      if (error) {
+        console.error("Error fetching user reservation:", error);
+      } else {
+        setUserReservations(data);
+        console.log("User reservations:", data);
+      }
+
+      setIsLoading(false);
+    }
+
+    fetchUserReservations();
   }, [session]);
 
   if (!user) {
@@ -88,14 +115,14 @@ export default function Profile() {
             <TabsTrigger value="bookings" className="cursor-pointer">
               Bookings
             </TabsTrigger>
+            <TabsTrigger value="reservations" className="cursor-pointer">
+              Reservations
+            </TabsTrigger>
             <TabsTrigger value="favorites" className="cursor-pointer">
               Favorites
             </TabsTrigger>
             <TabsTrigger value="reviews" className="cursor-pointer">
               Reviews
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="cursor-pointer">
-              Settings
             </TabsTrigger>
           </TabsList>
 
@@ -141,13 +168,18 @@ export default function Profile() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="settings">
+          <TabsContent value="reservations">
             <Card>
               <CardContent className="p-4 space-y-3">
-                <p className="text-gray-600">
-                  Update your profile settings here.
-                </p>
-                {/* Add settings form if needed */}
+                {loading ? (
+                  <Spinner />
+                ) : userReservations.length > 0 ? (
+                  userReservations.map((favorite) => (
+                    <FavoriteCard key={favorite.id} favorite={favorite} />
+                  ))
+                ) : (
+                  <p className="text-gray-600">You have no Reservation.</p>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

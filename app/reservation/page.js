@@ -20,7 +20,6 @@ export default function BookPage() {
     time: "",
     guests: 1,
     checkIn: "",
-    checkOut: "",
     roomType: "",
     notes: "",
   });
@@ -47,7 +46,6 @@ export default function BookPage() {
       "phoneNumber",
       "roomType",
       "checkIn",
-      "checkOut",
       "time",
       "guests",
     ];
@@ -176,16 +174,21 @@ export default function BookPage() {
               </div>
 
               <div>
-                <label className="text-gray-700 font-medium block mb-1">
-                  Check Out Date
+                <label className="text-gray-700 font-medium block">
+                  Number of Guests
                 </label>
                 <input
-                  type="date"
+                  type="number"
+                  name="guests"
+                  min={1}
                   required
-                  name="checkOut"
+                  value={form.guests}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
+                <p className="text-gray-400 text-center mt-4 mb-0">
+                  Reservations will be canceled 2 hours after reservation day.
+                </p>
               </div>
 
               <div className="flex justify-between mt-6">
@@ -207,21 +210,6 @@ export default function BookPage() {
 
           {step === 3 && (
             <div className="space-y-4">
-              <div>
-                <label className="text-gray-700 font-medium block mb-1">
-                  Number of Guests
-                </label>
-                <input
-                  type="number"
-                  name="guests"
-                  min={1}
-                  required
-                  value={form.guests}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
-              </div>
-
               <div>
                 <label className="text-gray-700 font-medium block mb-1">
                   Arrival Time
