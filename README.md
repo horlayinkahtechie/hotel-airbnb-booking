@@ -10,17 +10,39 @@ This is a full-stack Hotel or Airbnb-style Booking System built with Next.js usi
     - Multi-step booking process
     - Confirmation and booking summary
     - View booking history
+    - Live chat with officials in charge
 
   **Admin Features**
     - Add, edit, or delete rooms
     - View all bookings
     - View revenue and occupancy analytics
     - Role-based access control
+    - Live chat with users that messages
 
 
-**Booking Flow (Frontend)**
-  Step 1: Select available dates (disable booked dates)
-  Step 2: Select room type & guest count
-  Step 3: Fill guest details
-  Step 4: Review and confirm booking
-  Data will be saved in local state or Context API before final submission.
+**Booking Process**
+  Step 1: Select listings among room listings and choose the type you want to book.
+  Step 2: Proceed to checkout page where users will input their details like check in, check out, full name, payment method. Each Room has an ID and a room with the same ID cannot be booked by two different users   within the same time range. 
+  Step 3: Proceed to pay a non-refundable booking fee.
+  Step 4: Receive a notification of confirmation.
+
+**Reservation Process**
+  Step 1: Users visit the room reservations page. 
+  Step 2: Users input details like email, full name, room type, check in date and time, number of guests, phone number.
+  Step 3: Users then submit their reservation, before submission selected date for reservation will be checked automatically to see if there is reservation for that particular date.
+  Step 4: Recieve a notification of confirmation.
+
+
+**Technologies used in building BookNest**
+
+  **Frontend Technologies**
+    **- Next.js (React Framework):** BookNest uses Next.js for its frontend because of its SSR (Server-Side Rendering) capabilities, which provide faster page load times, image optimization and better SEO.
+    **- Tailwind CSS:**  Tailwind is a utility-first CSS framework used for styling the UI with minimal custom CSS, which makes it easier to maintain and customize and used for responsive design accross all devices.
+    **- Shadcn/UI & Headless UI:** Used for clean, accessible components like modals, dropdowns, calendars, etc., without bloated styles.
+    **- Heroicons & Lucide Icons:** Used for visually communicating intent (e.g., calendar icons, clock, navigation).
+    
+  **Backend Technologies**
+    **- Supabase:** Supabase serves as the database for Booknest project
+    **- Authentication:** I used NextAuth for secure authentication of users using their google account.
+    **- Email Notification:** I used EmailJS for sending notifications of bookings and reservations.
+  
