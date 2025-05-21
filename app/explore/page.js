@@ -58,7 +58,7 @@ export default function ExplorePage() {
         {/* Filter Tabs */}
         <Tabs defaultValue="All" className="mb-8">
           <TabsList className="grid grid-cols-4 w-full sm:w-[400px] mx-auto">
-            {["All", "Hotel", "Apartment", "Shortlet"].map((type) => (
+            {["All", "Basic", "Standard", "Luxury"].map((type) => (
               <TabsTrigger
                 key={type}
                 value={type}
