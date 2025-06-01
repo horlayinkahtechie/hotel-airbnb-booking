@@ -5,32 +5,46 @@ import { useSession } from "next-auth/react";
 export default function useChat() {
   const { data: session, status } = useSession();
   const [messages, setMessages] = useState([]);
+  const [replies, setReplies] = useState([]);
 
   useEffect(() => {
     if (status !== "authenticated") return;
 
     const email = session.user.email;
 
-    const fetchMessages = async () => {
-      const { data, error } = await supabase
+    const fetchData = async () => {
+      // Fetch user messages
+      const { data: messages, error: msgError } = await supabase
         .from("messages")
         .select("*")
         .eq("email", email)
         .order("created_at", { ascending: true });
 
-      if (!error) setMessages(data);
+      if (!msgError && messages) {
+        setMessages(messages);
+
+        // Fetch replies for these messages
+        const { data: replies, error: replyError } = await supabase
+          .from("messages_replies")
+          .select("*")
+          .in(
+            "message_id",
+            messages.map((m) => m.id)
+          );
+
+        if (!replyError) setReplies(replies);
+      }
     };
 
-    fetchMessages();
+    fetchData();
 
-    // Realtime subscription
-    const channel = supabase
-      .channel("chat-room")
+    // Realtime subscriptions
+    const messagesChannel = supabase
+      .channel("user-messages")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages" },
         (payload) => {
-          // Only add to state if message belongs to this user
           if (payload.new.email === email) {
             setMessages((prev) => [...prev, payload.new]);
           }
@@ -38,29 +52,34 @@ export default function useChat() {
       )
       .subscribe();
 
+    const repliesChannel = supabase
+      .channel("admin-replies")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "message_replies" },
+        (payload) => {
+          if (messages.some((m) => m.id === payload.new.message_id)) {
+            setReplies((prev) => [...prev, payload.new]);
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(messagesChannel);
+      supabase.removeChannel(repliesChannel);
     };
   }, [session, status]);
 
-  const sendMessage = async (text, sender = "You") => {
+  const sendMessage = async (text) => {
     if (!text.trim() || !session?.user?.email) return;
-
-    const now = new Date();
-    const time = now.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-    const year = now.getFullYear();
 
     await supabase.from("messages").insert({
       content: text,
-      sender,
+      sender: "You",
       email: session.user.email,
-      time,
-      year,
     });
   };
 
-  return { messages, sendMessage };
+  return { messages, replies, sendMessage };
 }

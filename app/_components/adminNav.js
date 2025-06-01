@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { FaUserCircle } from "react-icons/fa";
 import { HiMenu, HiX } from "react-icons/hi";
 
-export default function Navbar() {
+export default function AdminNavbar() {
   const { data: session, status } = useSession();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -23,7 +23,7 @@ export default function Navbar() {
 
         {/* Desktop Menu */}
         <nav className="hidden md:flex gap-6 items-center">
-          <Link href="/explore" className="hover:underline">
+          {/* <Link href="/explore" className="hover:underline">
             Explore
           </Link>
           <Link href="/aboutus" className="hover:underline">
@@ -31,10 +31,10 @@ export default function Navbar() {
           </Link>
           <Link href="/contact" className="hover:underline">
             Contact
-          </Link>
+          </Link> */}
           {session ? (
             <div className="flex items-center gap-2">
-              <Link href="/user/profile">
+              <Link href="/admin/profile">
                 <FaUserCircle size={24} className="text-gray-700" />
               </Link>
               <Button
@@ -50,7 +50,7 @@ export default function Navbar() {
               variant="outline"
               className="hover:bg-black hover:outline-0 hover:text-white cursor-pointer"
             >
-              <Link href="/user/signin">Login</Link>
+              <Link href="/admin/signin">Login</Link>
             </Button>
           )}
         </nav>

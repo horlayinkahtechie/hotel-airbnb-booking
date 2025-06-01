@@ -45,7 +45,7 @@ export default function AboutPage() {
               <Image
                 src={apartment3}
                 placeholder="blur"
-                quality={60}
+                quality={50}
                 alt="Our journey"
                 className="rounded-xl shadow-lg w-full object-cover"
               />

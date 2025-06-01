@@ -1,11 +1,30 @@
 "use client";
-
 import Footer from "@/app/_components/Footer";
 import Navbar from "@/app/_components/Navbar";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { FcGoogle } from "react-icons/fc";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function SignInPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.push("/");
+    }
+  }, [status, router]);
+
+  const handleSignIn = async () => {
+    try {
+      await signIn("google", { callbackUrl: "/" });
+    } catch (error) {
+      console.error("Sign in error:", error);
+      console.log(error);
+    }
+  };
+
   return (
     <>
       <Navbar />
@@ -17,7 +36,7 @@ export default function SignInPage() {
           </p>
 
           <button
-            onClick={() => signIn("google", { callbackUrl: "/" })}
+            onClick={handleSignIn}
             className="w-full flex cursor-pointer items-center justify-center gap-3 bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-lg transition"
           >
             <FcGoogle size={22} />
