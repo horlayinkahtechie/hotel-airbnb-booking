@@ -125,9 +125,9 @@ export default function InsertRoomModal({ isOpen, onClose, onSuccess }) {
               onChange={handleChange}
               className="w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="deluxe">Basic</option>
-              <option value="standard">Standard</option>
-              <option value="suite">Luxury</option>
+              <option value="Basic">Basic</option>
+              <option value="Standard">Standard</option>
+              <option value="luxury">Luxury</option>
               {/* <option value="family">Family</option> */}
             </select>
           </div>

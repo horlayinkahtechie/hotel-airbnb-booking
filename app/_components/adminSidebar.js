@@ -7,10 +7,12 @@ import { usePathname } from "next/navigation";
 const links = [
   { name: "Dashboard", href: "/admin/dashboard" },
   { name: "Bookings", href: "/admin/bookings" },
-  { name: "Your Profile", href: "/admin/profile" },
+  { name: "Reservations", href: "/admin/reservations" },
   { name: "Rooms", href: "/admin/rooms" },
-  { name: "Users", href: "/admin/users" },
   { name: "Messages", href: "/admin/messages" },
+  { name: "Analytics", href: "/admin/analytics" },
+  { name: "Users", href: "/admin/users" },
+  { name: "Your Profile", href: "/admin/profile" },
 ];
 
 export default function AdminSidebar() {

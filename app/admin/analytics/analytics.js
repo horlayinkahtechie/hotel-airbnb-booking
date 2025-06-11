@@ -11,65 +11,120 @@ import {
   DollarSign,
   Hotel,
   CreditCard,
-  Link,
 } from "lucide-react";
 import AdminNavbar from "@/app/_components/adminNav";
 import AdminSidebar from "@/app/_components/adminSidebar";
+import RevenueChart from "@/app/_components/adminRevenueChart";
+import BookingChart from "@/app/_components/adminBookingChart";
+import Link from "next/link";
 
 export default function AnalyticsDashboard() {
   const [loading, setLoading] = useState(true);
-  const [metrics, setMetrics] = useState({
-    totalRevenue: 0,
-    bookings: 0,
-    occupancyRate: 0,
-    averageStay: 0,
-  });
+  const [bookingsData, setBookingsData] = useState([]);
   const [revenueData, setRevenueData] = useState([]);
-  const [bookingSources, setBookingSources] = useState([]);
-  const [recentBookings, setRecentBookings] = useState([]);
+  const [reservationData, setReservationsData] = useState([]);
+  const [roomsOccupancyRate, setRoomsOccupancyRate] = useState([]);
 
   useEffect(() => {
-    const fetchAnalyticsData = async () => {
+    const fetchAllData = async () => {
       try {
         setLoading(true);
 
-        // Fetch all data in parallel
         const [
-          { data: revenue },
-          { data: sources },
-          { data: bookings },
-          { data: metricsData },
+          { data: bookings, error: bookingsError },
+          { data: occupancyRate, occupancyRateError },
+          { data: ReservationsRate, error: ReservationsRateError },
         ] = await Promise.all([
-          supabase.rpc("get_monthly_revenue"),
-          supabase.rpc("get_booking_sources"),
           supabase
             .from("bookings")
             .select("*")
-            .order("created_at", { ascending: false })
-            .limit(5),
-          supabase.rpc("get_metrics_snapshot"),
+            .order("created_at", { ascending: false }),
+
+          supabase
+            .from("rooms")
+            .select("*")
+            .order("created_at", { ascending: false }),
+
+          supabase
+            .from("reservations")
+            .select("*")
+            .order("created_at", { ascending: false }),
         ]);
 
-        setRevenueData(revenue || []);
-        setBookingSources(sources || []);
-        setRecentBookings(bookings || []);
-        setMetrics(
-          metricsData?.[0] || {
-            totalRevenue: 0,
-            bookings: 0,
-            occupancyRate: 0,
-            averageStay: 0,
-          }
-        );
-      } catch (error) {
-        console.error("Error fetching analytics:", error);
+        if (bookingsError || occupancyRateError || ReservationsRateError) {
+          throw new Error(
+            bookingsError?.message ||
+              occupancyRateError?.message ||
+              ReservationsRateError?.message
+          );
+        }
+
+        setBookingsData(bookings || []);
+        setRevenueData(bookings || []);
+        setRoomsOccupancyRate(occupancyRate || []);
+        setReservationsData(ReservationsRate || []);
+      } catch (err) {
+        console.error("Fetch error:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAnalyticsData();
+    fetchAllData();
   }, []);
+
+  const availableRooms = roomsOccupancyRate.filter(
+    (room) => room.status === "available"
+  ).length;
+  const occupiedRooms = roomsOccupancyRate.length - availableRooms;
+  const monthlyOccupancyRates = Math.round(
+    (occupiedRooms / availableRooms) * 100
+  );
+
+  const formatPrice = (price) => {
+    if (!price) return "₦0";
+    if (price >= 1_000_000_000)
+      return `₦${(price / 1_000_000_000).toFixed(1)}B`;
+    if (price >= 1_000_000) return `₦${(price / 1_000_000).toFixed(1)}M`;
+    if (price >= 1_000) return `₦${(price / 1_000).toFixed(0)}k`;
+    return `₦${price}`;
+  };
+
+  const totalPrice = bookingsData.reduce(
+    (sum, booking) => sum + Number(booking.price || 0),
+    0
+  );
+
+  const aggregateBookingsByMonth = (bookings) => {
+    const monthlyData = {};
+
+    bookings.forEach((booking) => {
+      const date = new Date(booking.created_at);
+      const monthYear = `${date.getFullYear()}-${String(
+        date.getMonth() + 1
+      ).padStart(2, "0")}`;
+
+      if (!monthlyData[monthYear]) {
+        monthlyData[monthYear] = {
+          month: `${date.toLocaleString("default", {
+            month: "short",
+          })} ${date.getFullYear()}`,
+          revenue: 0,
+          bookings: 0,
+        };
+      }
+
+      monthlyData[monthYear].revenue += Number(booking.price || 0);
+      monthlyData[monthYear].bookings += 1;
+    });
+
+    return Object.values(monthlyData);
+  };
+
+  const monthlyData = aggregateBookingsByMonth(bookingsData);
+
+  // Get the last 6 months of data for display
+  const last6MonthsData = monthlyData.slice(-6);
 
   if (loading) {
     return (
@@ -101,28 +156,28 @@ export default function AnalyticsDashboard() {
             <MetricCard
               icon={<DollarSign className="w-6 h-6" />}
               title="Total Revenue"
-              value={`₦${metrics.totalRevenue.toLocaleString()}`}
+              value={formatPrice(totalPrice)}
               change="+12% from last month"
               trend="up"
             />
             <MetricCard
               icon={<Hotel className="w-6 h-6" />}
-              title="Bookings"
-              value={metrics.bookings}
+              title="Total Bookings"
+              value={bookingsData.length}
               change="+8 from last week"
               trend="up"
             />
             <MetricCard
               icon={<TrendingUp className="w-6 h-6" />}
               title="Occupancy Rate"
-              value={`${metrics.occupancyRate}%`}
+              value={`${monthlyOccupancyRates}%`}
               change="+5% from last month"
               trend="up"
             />
             <MetricCard
               icon={<Calendar className="w-6 h-6" />}
               title="Avg. Stay Duration"
-              value={`${metrics.averageStay} nights`}
+              value="80%"
               change="No change"
               trend="neutral"
             />
@@ -141,21 +196,7 @@ export default function AnalyticsDashboard() {
                 </select>
               </div>
               <div className="h-64">
-                {/* Replace with your chart library (Chart.js, etc.) */}
-                <div className="flex items-end justify-between h-full">
-                  {revenueData.map((month) => (
-                    <div
-                      key={month.month}
-                      className="flex flex-col items-center"
-                    >
-                      <div
-                        className="w-8 bg-blue-500 rounded-t-sm"
-                        style={{ height: `${(month.revenue / 500000) * 100}%` }}
-                      ></div>
-                      <span className="text-xs mt-2">{month.month}</span>
-                    </div>
-                  ))}
-                </div>
+                <RevenueChart data={last6MonthsData} />
               </div>
             </div>
 
@@ -170,21 +211,7 @@ export default function AnalyticsDashboard() {
                 </select>
               </div>
               <div className="h-64">
-                {/* Replace with your chart library (Chart.js, etc.) */}
-                <div className="flex items-end justify-between h-full">
-                  {revenueData.map((month) => (
-                    <div
-                      key={month.month}
-                      className="flex flex-col items-center"
-                    >
-                      <div
-                        className="w-8 bg-blue-500 rounded-t-sm"
-                        style={{ height: `${(month.revenue / 500000) * 100}%` }}
-                      ></div>
-                      <span className="text-xs mt-2">{month.month}</span>
-                    </div>
-                  ))}
-                </div>
+                <BookingChart data={last6MonthsData} />
               </div>
             </div>
           </div>
@@ -195,67 +222,91 @@ export default function AnalyticsDashboard() {
             <div className="bg-white p-6 rounded-xl shadow-sm">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-semibold">Recent Bookings</h2>
-                <Link
-                  href="/admin/bookings"
-                  className="text-sm text-blue-600 hover:underline"
-                >
-                  View All
-                </Link>
+                {bookingsData.length > 4 && (
+                  <Link
+                    href="/admin/bookings"
+                    className="text-sm text-blue-600 hover:underline"
+                  >
+                    View All
+                  </Link>
+                )}
               </div>
               <div className="space-y-4">
-                {recentBookings.map((booking) => (
-                  <div
-                    key={booking.id}
-                    className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition"
-                  >
-                    <div className="flex items-center space-x-4">
-                      <div className="bg-blue-100 p-2 rounded-full">
-                        <Users className="w-5 h-5 text-blue-600" />
+                {bookingsData
+                  .sort(
+                    (a, b) => new Date(b.created_at) - new Date(a.created_at)
+                  )
+                  .slice(0, 4)
+                  .map((booking) => (
+                    <div
+                      key={booking.id}
+                      className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition"
+                    >
+                      <div className="flex items-center space-x-4">
+                        <div className="bg-blue-100 p-2 rounded-full">
+                          <Users className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium">
+                            {booking.full_name || "Guest"}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {new Date(booking.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium">
-                          {booking.guest_name || "Guest"}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {new Date(booking.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
+                      <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
+                        {booking.type}
+                      </span>
                     </div>
-                    <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
-                      {booking.room_type || "Standard"}
-                    </span>
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
 
             {/* Upcoming Arrivals */}
             <div className="bg-white p-6 rounded-xl shadow-sm">
-              <h2 className="text-lg font-semibold mb-6">Upcoming Arrivals</h2>
-              <div className="space-y-4">
-                {[1, 2, 3].map((item) => (
-                  <div
-                    key={item}
-                    className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition"
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-semibold">Upcoming Arrivals</h2>
+                {reservationData.length > 4 && (
+                  <Link
+                    href="/admin/reservations"
+                    className="text-sm text-blue-600 hover:underline mt-4 inline-block"
                   >
-                    <div className="flex items-center space-x-4">
-                      <div className="bg-green-100 p-2 rounded-full">
-                        <Calendar className="w-5 h-5 text-green-600" />
+                    View All ({reservationData.length})
+                  </Link>
+                )}
+              </div>
+              <div className="space-y-4">
+                {reservationData
+                  .sort(
+                    (a, b) => new Date(b.created_at) - new Date(a.created_at)
+                  )
+                  .slice(0, 4)
+                  .map((reservation) => (
+                    <div
+                      key={reservation.id}
+                      className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition"
+                    >
+                      <div className="flex items-center space-x-4">
+                        <div className="bg-green-100 p-2 rounded-full">
+                          <Calendar className="w-5 h-5 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium">
+                            {reservation.fullName || "Guest"}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {new Date(
+                              reservation.created_at
+                            ).toLocaleDateString()}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium">Guest {item}</p>
-                        <p className="text-sm text-gray-500">
-                          {new Date(
-                            Date.now() + item * 24 * 60 * 60 * 1000
-                          ).toLocaleDateString()}
-                        </p>
-                      </div>
+                      <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
+                        {reservation.roomType || "Standard"}
+                      </span>
                     </div>
-                    <span className="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full">
-                      Arriving
-                    </span>
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
           </div>

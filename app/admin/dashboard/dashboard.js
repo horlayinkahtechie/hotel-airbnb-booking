@@ -11,7 +11,7 @@ import {
   CalendarCheck2,
   Plus,
 } from "lucide-react";
-import Spinner from "@/app/_components/Spinner";
+// import Spinner from "@/app/_components/Spinner";
 import AdminSidebar from "@/app/_components/adminSidebar";
 import AdminNavbar from "@/app/_components/adminNav";
 import Link from "next/link";
@@ -24,6 +24,10 @@ export default function AdminDashboard() {
   const [reservationsData, setReservationsData] = useState([]);
   const [totalRoomsData, setTotalRooms] = useState([]);
   const [recentBookings, setRecentBookings] = useState([]);
+  const [bookingsChange, setBookingsChange] = useState("Loading...");
+  const [reservationChange, setReservationChange] = useState("Loading...");
+  const [revenueChange, setRevenueChange] = useState("Loading...");
+
   const [loading, setLoading] = useState(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -43,10 +47,43 @@ export default function AdminDashboard() {
       try {
         setLoading(true);
 
+        const now = new Date();
+        const currentMonthBooking = now.getMonth();
+        const currentYearBooking = now.getFullYear();
+
+        // Calculate previous month (handle year change if needed)
+        const prevMonthBookings =
+          currentMonthBooking === 0 ? 11 : currentMonthBooking - 1;
+        const prevYearBookings =
+          currentMonthBooking === 0
+            ? currentYearBooking - 1
+            : currentYearBooking;
+
+        const currentMonthReservation = now.getMonth();
+        const currentYearReservation = now.getFullYear();
+        const prevMonthReservations =
+          currentMonthReservation === 0 ? 11 : currentMonthReservation - 1;
+        const prevYearReservations =
+          currentMonthBooking === 0
+            ? currentYearReservation - 1
+            : currentYearReservation;
+
         const [
           { data: bookings, error: bookingsError },
           { data: reservations, error: reservationsError },
-          { data: rooms, error: roomsError },
+          { data: allRooms, error: roomsError },
+          { data: currentMonthBookings, error: currentMonthBookingsError },
+          { data: previousMonthBookings, error: previousMonthBookingsError },
+          {
+            data: currentMonthReservations,
+            error: currentMonthReservationsError,
+          },
+          {
+            data: previousMonthReservations,
+            error: previousMonthReservationsError,
+          },
+          { data: currentMonthRevenue, error: currentMonthRevenueError },
+          { data: previousMonthRevenue, error: previousMonthRevenueError },
         ] = await Promise.all([
           supabase
             .from("bookings")
@@ -60,19 +97,202 @@ export default function AdminDashboard() {
             .from("rooms")
             .select("*")
             .order("created_at", { ascending: false }),
+
+          // Get bookings created in current month
+          supabase
+            .from("bookings")
+            .select("*")
+            .gte(
+              "created_at",
+              new Date(currentYearBooking, currentMonthBooking, 1).toISOString()
+            )
+            .lt(
+              "created_at",
+              new Date(
+                currentYearBooking,
+                currentMonthBooking + 1,
+                1
+              ).toISOString()
+            ),
+          // Get bookings created in previous month
+          supabase
+            .from("bookings")
+            .select("*")
+            .gte(
+              "created_at",
+              new Date(prevMonthBookings, prevMonthBookings, 1).toISOString()
+            )
+            .lt(
+              "created_at",
+              new Date(prevYearBookings, prevMonthBookings + 1, 1).toISOString()
+            ),
+          // Get reservations created in current month
+          supabase
+            .from("reservations")
+            .select("*")
+            .gte(
+              "created_at",
+              new Date(
+                currentYearReservation,
+                currentMonthReservation,
+                1
+              ).toISOString()
+            )
+            .lt(
+              "created_at",
+              new Date(
+                currentYearReservation,
+                currentMonthReservation + 1,
+                1
+              ).toISOString()
+            ),
+          // Get reservations created in previous month
+          supabase
+            .from("reservations")
+            .select("*")
+            .gte(
+              "created_at",
+              new Date(
+                prevYearReservations,
+                prevMonthReservations,
+                1
+              ).toISOString()
+            )
+            .lt(
+              "created_at",
+              new Date(
+                prevYearReservations,
+                prevMonthReservations + 1,
+                1
+              ).toISOString()
+            ),
+
+          // Current month bookings for revenue calculation
+          supabase
+            .from("bookings")
+            .select("price")
+            .gte(
+              "created_at",
+              new Date(currentYearBooking, currentMonthBooking, 1).toISOString()
+            )
+            .lt(
+              "created_at",
+              new Date(
+                currentYearBooking,
+                currentMonthBooking + 1,
+                1
+              ).toISOString()
+            ),
+
+          // Previous month bookings for revenue calculation
+          supabase
+            .from("bookings")
+            .select("price")
+            .gte(
+              "created_at",
+              new Date(prevYearBookings, prevMonthBookings, 1).toISOString()
+            )
+            .lt(
+              "created_at",
+              new Date(prevYearBookings, prevMonthBookings + 1, 1).toISOString()
+            ),
         ]);
 
-        if (bookingsError || reservationsError || roomsError) {
+        if (
+          bookingsError ||
+          reservationsError ||
+          roomsError ||
+          currentMonthBookingsError ||
+          previousMonthBookingsError ||
+          currentMonthReservationsError ||
+          previousMonthReservationsError ||
+          currentMonthRevenueError ||
+          previousMonthRevenueError
+        ) {
           throw new Error(
             bookingsError?.message ||
               reservationsError?.message ||
-              roomsError?.message
+              roomsError?.message ||
+              currentMonthBookingsError?.message ||
+              previousMonthBookingsError?.message ||
+              currentMonthReservationsError?.message ||
+              previousMonthReservationsError?.message ||
+              currentMonthRevenueError?.message ||
+              previousMonthRevenueError?.message
           );
         }
 
         setBookingsData(bookings || []);
         setReservationsData(reservations || []);
-        setTotalRooms(rooms || []);
+        setTotalRooms(allRooms || []);
+
+        // Calculate Reservation change
+        const currentReservationCount = currentMonthReservations?.length || 0;
+        const prevReservationCount = previousMonthReservations?.length || 0;
+        const ReservationDifference =
+          currentReservationCount - prevReservationCount;
+
+        let changeReservationText = "";
+        if (ReservationDifference > 0) {
+          changeReservationText = `+${ReservationDifference} this month`;
+        } else if (ReservationDifference < 0) {
+          changeReservationText = `${ReservationDifference} this month`;
+        } else {
+          changeReservationText = "No change";
+        }
+
+        setReservationChange(changeReservationText);
+
+        // Calculate bookings change
+        const currentBookingCount = currentMonthBookings?.length || 0;
+        const prevBookingCount = previousMonthBookings?.length || 0;
+        const BookingDifference = currentBookingCount - prevBookingCount;
+
+        let changeText = "";
+        if (BookingDifference > 0) {
+          changeText = `+${BookingDifference} this month`;
+        } else if (BookingDifference < 0) {
+          changeText = `${BookingDifference} this month`;
+        } else {
+          changeText = "No change";
+        }
+
+        setBookingsChange(changeText);
+
+        // Calculate revenue changes
+        const currentMonthRevenueTotal =
+          currentMonthRevenue?.reduce(
+            (sum, booking) => sum + Number(booking.price || 0),
+            0
+          ) || 0;
+
+        const previousMonthRevenueTotal =
+          previousMonthRevenue?.reduce(
+            (sum, booking) => sum + Number(booking.price || 0),
+            0
+          ) || 0;
+
+        let revenueChangeText = "No change";
+        if (previousMonthRevenueTotal > 0) {
+          const percentageChange =
+            ((currentMonthRevenueTotal - previousMonthRevenueTotal) /
+              previousMonthRevenueTotal) *
+            100;
+
+          if (percentageChange > 0) {
+            revenueChangeText = `+${percentageChange.toFixed(
+              1
+            )}% from last month`;
+          } else if (percentageChange < 0) {
+            revenueChangeText = `${percentageChange.toFixed(
+              1
+            )}% from last month`;
+          }
+        } else if (currentMonthRevenueTotal > 0) {
+          revenueChangeText = "+100% (new revenue)";
+        }
+
+        setRevenueChange(revenueChangeText);
       } catch (err) {
         console.error("Fetch error:", err);
       } finally {
@@ -138,7 +358,13 @@ export default function AdminDashboard() {
     fetchRecentBookings();
   }, []);
 
-  if (status === "loading" || loading) return <Spinner />;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -164,25 +390,24 @@ export default function AdminDashboard() {
               icon={<BedDouble className="w-6 h-6" />}
               title="Total Rooms"
               value={totalRoomsData.length}
-              change="+2 this month"
               iconColor="text-blue-500"
               bgColor="bg-blue-50"
             />
 
             <StatCard
-              icon={<Users className="w-6 h-6" />}
+              icon={<BedDouble className="w-6 h-6" />}
               title="Total Bookings"
               value={bookingsData.length}
-              change="+5 today"
-              iconColor="text-green-500"
-              bgColor="bg-green-50"
+              change={bookingsChange}
+              iconColor="text-blue-500"
+              bgColor="bg-blue-50"
             />
 
             <StatCard
               icon={<CalendarCheck2 className="w-6 h-6" />}
               title="Reservations"
               value={reservationsData.length}
-              change="+12 this week"
+              change={reservationChange}
               iconColor="text-purple-500"
               bgColor="bg-purple-50"
             />
@@ -191,7 +416,7 @@ export default function AdminDashboard() {
               icon={<BarChart2 className="w-6 h-6" />}
               title="Monthly Revenue"
               value={formatPrice(totalPrice)}
-              change="+8% from last month"
+              change={revenueChange}
               iconColor="text-amber-500"
               bgColor="bg-amber-50"
             />
