@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import PaystackButton from "@/app/_components/DynamicPaystackButton";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/app/lib/supabase";
 import Footer from "@/app/_components/Footer";
 import Navbar from "@/app/_components/Navbar";
-import emailjs from "@emailjs/browser";
+// import emailjs from "@emailjs/browser";
 
 export default function PaymentComponent() {
   const { data: session } = useSession();
@@ -31,61 +31,42 @@ export default function PaymentComponent() {
 
   const publicKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "";
 
-  const handleSuccess = async () => {
-    if (!session) {
-      alert("Please log in first to book.");
-      return;
-    }
+  useEffect(() => {
+    const handleSuccess = async () => {
+      console.log("handleSuccess called");
+      if (!session) {
+        alert("Please log in first to book.");
+        return;
+      }
 
-    const { error } = await supabase.from("bookings").insert([
-      {
-        email: session.user.email,
-        listing_id,
-        listing_name: name,
-        location,
-        price: priceNumber,
-        type,
-        listing_img: image,
-        payment_status: "Paid",
-        full_name: fullName,
-        checkin_date: checkinDate,
-        checkout_date: checkoutDate,
-        no_of_days: noOfDays,
-      },
-    ]);
-
-    // Send confirmation email
-    emailjs
-      .send(
-        process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID, //Service ID
-        process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID, //Template ID
+      const { error } = await supabase.from("bookings").insert([
         {
-          firstName,
-          lastName,
-          email,
-          reservationDate: formatDate(reservationDate),
-          reservationTime,
-          noOfGuests,
-          noOfReservedSeat,
-          specialRequests,
+          email: session.user.email,
+          listing_id,
+          listing_name: name,
+          location,
+          price: priceNumber,
+          type,
+          listing_img: image,
+          payment_status: "Paid",
+          full_name: fullName,
+          checkin_date: checkinDate,
+          checkout_date: checkoutDate,
+          no_of_days: noOfDays,
         },
-        process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY // (user ID)
-      )
-      .then(
-        (result) => {
-          console.log("Confirmation Email sent successfully!");
-        },
-        (error) => {
-          console.error("Failed to send confirmation email", error);
-        }
-      );
+      ]);
 
-    if (error) {
-      console.error("Something went wrong", error);
-    } else {
-      console.log("Booking saved to database");
-    }
-  };
+      if (error) {
+        console.error("Supabase insert error:", error);
+        alert("Failed to save booking. Please try again.");
+      } else {
+        console.log("Booking saved successfully:");
+        // router.push("/payment_status/success");
+      }
+    };
+
+    handleSuccess();
+  }, []);
 
   const paymentProps = {
     email: session?.user?.email || email,
@@ -112,21 +93,6 @@ export default function PaymentComponent() {
                 ₦{priceNumber.toLocaleString()}
               </span>
             </p>
-
-            {!session && (
-              <div className="space-y-2">
-                <label className="block text-gray-700 font-medium">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                />
-              </div>
-            )}
 
             <PaystackButton
               {...paymentProps}

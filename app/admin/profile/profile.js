@@ -3,6 +3,7 @@ import AdminNavbar from "@/app/_components/adminNav";
 import AdminSidebar from "@/app/_components/adminSidebar";
 import Spinner from "@/app/_components/Spinner";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/router";
 import { useState } from "react";
 import {
   FiUser,
@@ -17,6 +18,16 @@ import {
 const AdminProfilePage = () => {
   const { data: session, status } = useSession;
   const [loading, setIsLoading] = useState(false);
+
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === "loading") return;
+    if (!session || session.user.role !== "admin") {
+      router.push("/unauthorized");
+    }
+  }, [session, status, router]);
+
   // Sample admin profile data
   const adminProfile = {
     name: "Admin User",
@@ -38,7 +49,7 @@ const AdminProfilePage = () => {
     if (session?.user?.role !== "admin") {
       // console.log("Unauthorized access - redirecting");
       router.push("/unauthorized");
-      setLoading(false);
+      setIsLoading(false);
       return;
     }
     setIsLoading(true);

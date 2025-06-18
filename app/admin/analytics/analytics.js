@@ -17,23 +17,53 @@ import AdminSidebar from "@/app/_components/adminSidebar";
 import RevenueChart from "@/app/_components/adminRevenueChart";
 import BookingChart from "@/app/_components/adminBookingChart";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 export default function AnalyticsDashboard() {
+  const { data: session, status } = useSession();
   const [loading, setLoading] = useState(true);
   const [bookingsData, setBookingsData] = useState([]);
   const [revenueData, setRevenueData] = useState([]);
   const [reservationData, setReservationsData] = useState([]);
   const [roomsOccupancyRate, setRoomsOccupancyRate] = useState([]);
+  const [revenueChange, setRevenueChange] = useState("Loading...");
+  const [bookingsChange, setBookingsChange] = useState("Loading...");
+
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === "loading") return;
+    if (!session || session.user.role !== "admin") {
+      router.push("/unauthorized");
+    }
+  }, [session, status, router]);
 
   useEffect(() => {
     const fetchAllData = async () => {
       try {
         setLoading(true);
 
+        const now = new Date();
+        const currentMonthBooking = now.getMonth();
+        const currentYearBooking = now.getFullYear();
+
+        // Calculate previous month (handle year change if needed)
+        const prevMonthBookings =
+          currentMonthBooking === 0 ? 11 : currentMonthBooking - 1;
+        const prevYearBookings =
+          currentMonthBooking === 0
+            ? currentYearBooking - 1
+            : currentYearBooking;
+
         const [
           { data: bookings, error: bookingsError },
           { data: occupancyRate, occupancyRateError },
           { data: ReservationsRate, error: ReservationsRateError },
+          { data: currentMonthBookings, error: currentMonthBookingsError },
+          { data: previousMonthBookings, error: previousMonthBookingsError },
+          { data: currentMonthRevenue, error: currentMonthRevenueError },
+          { data: previousMonthRevenue, error: previousMonthRevenueError },
         ] = await Promise.all([
           supabase
             .from("bookings")
@@ -49,13 +79,84 @@ export default function AnalyticsDashboard() {
             .from("reservations")
             .select("*")
             .order("created_at", { ascending: false }),
+
+          // Get bookings created in current month
+          supabase
+            .from("bookings")
+            .select("*")
+            .gte(
+              "created_at",
+              new Date(currentYearBooking, currentMonthBooking, 1).toISOString()
+            )
+            .lt(
+              "created_at",
+              new Date(
+                currentYearBooking,
+                currentMonthBooking + 1,
+                1
+              ).toISOString()
+            ),
+          // Get bookings created in previous month
+          supabase
+            .from("bookings")
+            .select("*")
+            .gte(
+              "created_at",
+              new Date(prevMonthBookings, prevMonthBookings, 1).toISOString()
+            )
+            .lt(
+              "created_at",
+              new Date(prevYearBookings, prevMonthBookings + 1, 1).toISOString()
+            ),
+
+          // Current month bookings for revenue calculation
+          supabase
+            .from("bookings")
+            .select("price")
+            .gte(
+              "created_at",
+              new Date(currentYearBooking, currentMonthBooking, 1).toISOString()
+            )
+            .lt(
+              "created_at",
+              new Date(
+                currentYearBooking,
+                currentMonthBooking + 1,
+                1
+              ).toISOString()
+            ),
+
+          // Previous month bookings for revenue calculation
+          supabase
+            .from("bookings")
+            .select("price")
+            .gte(
+              "created_at",
+              new Date(prevYearBookings, prevMonthBookings, 1).toISOString()
+            )
+            .lt(
+              "created_at",
+              new Date(prevYearBookings, prevMonthBookings + 1, 1).toISOString()
+            ),
         ]);
 
-        if (bookingsError || occupancyRateError || ReservationsRateError) {
+        if (
+          bookingsError ||
+          occupancyRateError ||
+          ReservationsRateError ||
+          currentMonthRevenueError ||
+          previousMonthRevenueError ||
+          currentMonthBookingsError ||
+          previousMonthBookingsError
+        ) {
           throw new Error(
             bookingsError?.message ||
               occupancyRateError?.message ||
-              ReservationsRateError?.message
+              ReservationsRateError?.message ||
+              currentMonthRevenueError?.message ||
+              previousMonthRevenueError?.message ||
+              currentMonthBookingsError?.message ||
+              previousMonthBookingsError?.message
           );
         }
 
@@ -63,6 +164,59 @@ export default function AnalyticsDashboard() {
         setRevenueData(bookings || []);
         setRoomsOccupancyRate(occupancyRate || []);
         setReservationsData(ReservationsRate || []);
+
+        // Calculate bookings change
+        const currentBookingCount = currentMonthBookings?.length || 0;
+        const prevBookingCount = previousMonthBookings?.length || 0;
+        const BookingDifference = currentBookingCount - prevBookingCount;
+
+        let changeText = "";
+        if (BookingDifference > 0) {
+          changeText = `+${BookingDifference} this month`;
+        } else if (BookingDifference < 0) {
+          changeText = `${BookingDifference} this month`;
+        } else {
+          changeText = "No change";
+        }
+
+        setBookingsChange(changeText);
+
+        // Calculate revenue changes
+
+        // Calculate revenue changes
+        const currentMonthRevenueTotal =
+          currentMonthRevenue?.reduce(
+            (sum, booking) => sum + Number(booking.price || 0),
+            0
+          ) || 0;
+
+        const previousMonthRevenueTotal =
+          previousMonthRevenue?.reduce(
+            (sum, booking) => sum + Number(booking.price || 0),
+            0
+          ) || 0;
+
+        let revenueChangeText = "No change";
+        if (previousMonthRevenueTotal > 0) {
+          const percentageChange =
+            ((currentMonthRevenueTotal - previousMonthRevenueTotal) /
+              previousMonthRevenueTotal) *
+            100;
+
+          if (percentageChange > 0) {
+            revenueChangeText = `+${percentageChange.toFixed(
+              1
+            )}% from last month`;
+          } else if (percentageChange < 0) {
+            revenueChangeText = `${percentageChange.toFixed(
+              1
+            )}% from last month`;
+          }
+        } else if (currentMonthRevenueTotal > 0) {
+          revenueChangeText = "+100% (new revenue)";
+        }
+
+        setRevenueChange(revenueChangeText);
       } catch (err) {
         console.error("Fetch error:", err);
       } finally {
@@ -157,21 +311,21 @@ export default function AnalyticsDashboard() {
               icon={<DollarSign className="w-6 h-6" />}
               title="Total Revenue"
               value={formatPrice(totalPrice)}
-              change="+12% from last month"
+              change={revenueChange}
               trend="up"
             />
             <MetricCard
               icon={<Hotel className="w-6 h-6" />}
               title="Total Bookings"
               value={bookingsData.length}
-              change="+8 from last week"
+              change={bookingsChange}
               trend="up"
             />
             <MetricCard
               icon={<TrendingUp className="w-6 h-6" />}
               title="Occupancy Rate"
               value={`${monthlyOccupancyRates}%`}
-              change="+5% from last month"
+              change="Not calculated yet"
               trend="up"
             />
             <MetricCard
@@ -222,12 +376,12 @@ export default function AnalyticsDashboard() {
             <div className="bg-white p-6 rounded-xl shadow-sm">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-semibold">Recent Bookings</h2>
-                {bookingsData.length > 4 && (
+                {bookingsData && (
                   <Link
                     href="/admin/bookings"
                     className="text-sm text-blue-600 hover:underline"
                   >
-                    View All
+                    View All ({bookingsData.length})
                   </Link>
                 )}
               </div>

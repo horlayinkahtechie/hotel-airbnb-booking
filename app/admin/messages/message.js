@@ -14,6 +14,7 @@ import {
   FiTrash2,
   FiSearch,
 } from "react-icons/fi";
+import { useRouter } from "next/router";
 
 const AdminMessages = () => {
   const { data: session, status } = useSession();
@@ -24,6 +25,15 @@ const AdminMessages = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
+
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === "loading") return;
+    if (!session || session.user.role !== "admin") {
+      router.push("/unauthorized");
+    }
+  }, [session, status, router]);
 
   // Filter messages based on tab and search
   const filteredMessages = messages.filter((msg) => {

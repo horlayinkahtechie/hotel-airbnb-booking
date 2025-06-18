@@ -3,7 +3,9 @@ import AdminNavbar from "@/app/_components/adminNav";
 import AdminSidebar from "@/app/_components/adminSidebar";
 import InsertRoomModal from "@/app/_components/insertRoomModal";
 import { supabase } from "@/app/lib/supabase";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import {
   FiSearch,
   FiPlus,
@@ -17,9 +19,19 @@ import {
 
 const RoomsPage = () => {
   // const [rooms, setRooms] = useState([]);
+  const { data: session, status } = useSession();
   const [totalRoomsData, setTotalRooms] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setIsLoading] = useState(false);
+
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === "loading") return;
+    if (!session || session.user.role !== "admin") {
+      router.push("/unauthorized");
+    }
+  }, [session, status, router]);
 
   // Sample room data
   const rooms = [

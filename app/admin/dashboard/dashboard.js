@@ -11,7 +11,6 @@ import {
   CalendarCheck2,
   Plus,
 } from "lucide-react";
-// import Spinner from "@/app/_components/Spinner";
 import AdminSidebar from "@/app/_components/adminSidebar";
 import AdminNavbar from "@/app/_components/adminNav";
 import Link from "next/link";

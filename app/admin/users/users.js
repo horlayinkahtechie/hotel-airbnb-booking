@@ -1,5 +1,11 @@
+"use client";
 import AdminNavbar from "@/app/_components/adminNav";
 import AdminSidebar from "@/app/_components/adminSidebar";
+import InsertRoomModal from "@/app/_components/insertRoomModal";
+import { supabase } from "@/app/lib/supabase";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   FiSearch,
   FiPlus,
@@ -11,62 +17,131 @@ import {
   FiTrash2,
   FiCheckCircle,
   FiXCircle,
+  FiX,
 } from "react-icons/fi";
 
 const UsersPage = () => {
-  // Sample user data
-  const users = [
-    {
-      id: "USR-1001",
-      name: "John Doe",
-      email: "john@example.com",
-      phone: "+1 (555) 123-4567",
-      role: "Admin",
-      status: "Active",
-      lastLogin: "2023-06-15 09:30",
-      joinDate: "2022-01-15",
-    },
-    {
-      id: "USR-1002",
-      name: "Jane Smith",
-      email: "jane@example.com",
-      phone: "+1 (555) 987-6543",
-      role: "Receptionist",
-      status: "Active",
-      lastLogin: "2023-06-14 14:45",
-      joinDate: "2022-03-10",
-    },
-    {
-      id: "USR-1003",
-      name: "Robert Johnson",
-      email: "robert@example.com",
-      phone: "+1 (555) 456-7890",
-      role: "Housekeeping",
-      status: "Inactive",
-      lastLogin: "2023-05-20 11:15",
-      joinDate: "2022-05-22",
-    },
-    {
-      id: "USR-1004",
-      name: "Emily Wilson",
-      email: "emily@example.com",
-      phone: "+1 (555) 789-0123",
-      role: "User",
-      status: "Active",
-      lastLogin: "2023-06-15 08:00",
-      joinDate: "2021-11-05",
-    },
-    {
-      id: "USR-1005",
-      name: "Michael Brown",
-      email: "michael@example.com",
-      phone: "+1 (555) 234-5678",
-      role: "Receptionist",
-      status: "Pending",
-      lastLogin: "Never",
-      joinDate: "2023-06-01",
-    },
-  ];
+  const { data: session, status } = useSession();
+  const [users, setUsers] = useState([]);
+  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [loading, setIsLoading] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
+  const [filters, setFilters] = useState({
+    role: "all",
+    status: "all",
+    search: "",
+  });
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+
+  // Calculate pagination data
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredUsers.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+
+  // Pagination functions
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  const nextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+  const prevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === "loading") return;
+    if (!session || session.user.role !== "admin") {
+      router.push("/unauthorized");
+    }
+  }, [session, status, router]);
+
+  useEffect(() => {
+    const fetchAllUserData = async () => {
+      try {
+        setIsLoading(true);
+        const { data: totalUsers, error: totalUsersError } = await supabase
+          .from("users")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (totalUsersError) {
+          console.error(totalUsersError?.message);
+          setUsers([]);
+          setFilteredUsers([]);
+        } else {
+          setUsers(totalUsers || []);
+          setFilteredUsers(totalUsers || []);
+        }
+      } catch (err) {
+        console.error("Something went wrong!", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchAllUserData();
+  }, []);
+
+  // Apply filters whenever filters or users change
+  useEffect(() => {
+    const filtered = users.filter((user) => {
+      const matchesRole = filters.role === "all" || user.role === filters.role;
+      const matchesStatus =
+        filters.status === "all" || user.status === filters.status;
+      const matchesSearch =
+        filters.search === "" ||
+        user.name.toLowerCase().includes(filters.search.toLowerCase()) ||
+        user.email.toLowerCase().includes(filters.search.toLowerCase()) ||
+        user.phone?.toLowerCase().includes(filters.search.toLowerCase());
+
+      return matchesRole && matchesStatus && matchesSearch;
+    });
+    setFilteredUsers(filtered);
+  }, [filters, users]);
+
+  const handleDeleteClick = (userId) => {
+    setUserToDelete(userId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      setIsLoading(true);
+      const { error } = await supabase
+        .from("users")
+        .delete()
+        .eq("id", userToDelete);
+
+      if (error) throw error;
+
+      // Update local state
+      setUsers(users.filter((user) => user.id !== userToDelete));
+      setShowDeleteModal(false);
+    } catch (err) {
+      console.error("Delete failed:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters({ ...filters, [name]: value });
+  };
+
+  const handleSearchChange = (e) => {
+    setFilters({ ...filters, search: e.target.value });
+  };
 
   const statusColors = {
     Active: "bg-green-100 text-green-800",
@@ -81,6 +156,31 @@ const UsersPage = () => {
     Receptionist: "bg-indigo-100 text-indigo-800",
     Housekeeping: "bg-teal-100 text-teal-800",
   };
+
+  const openInsertModal = () => setIsModalOpen(true);
+  const closeInsertModal = () => setIsModalOpen(false);
+  const handleInsertSuccess = () => {
+    const fetchRooms = async () => {
+      const { data, error } = await supabase
+        .from("rooms")
+        .select("*")
+        .order("created_at", { ascending: false });
+    };
+    fetchRooms();
+  };
+
+  useEffect(() => {
+    // Reset to first page when filters change
+    setCurrentPage(1);
+  }, [filters]);
+
+  if (loading && users.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -113,9 +213,14 @@ const UsersPage = () => {
                     type="text"
                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     placeholder="Search users..."
+                    value={filters.search}
+                    onChange={handleSearchChange}
                   />
                 </div>
-                <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button
+                  onClick={openInsertModal}
+                  className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
                   <FiPlus className="mr-2" />
                   Add User
                 </button>
@@ -133,7 +238,9 @@ const UsersPage = () => {
                     <p className="text-sm font-medium text-gray-600">
                       Total Users
                     </p>
-                    <p className="text-2xl font-semibold text-gray-900">24</p>
+                    <p className="text-2xl font-semibold text-gray-900">
+                      {users.length}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -143,21 +250,23 @@ const UsersPage = () => {
                     <FiCheckCircle size={20} />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Active</p>
-                    <p className="text-2xl font-semibold text-gray-900">18</p>
+                    <p className="text-sm font-medium text-gray-600">Admin</p>
+                    <p className="text-2xl font-semibold text-gray-900">
+                      {users.filter((user) => user.role === "admin").length}
+                    </p>
                   </div>
                 </div>
               </div>
-              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-green-200">
                 <div className="flex items-center">
-                  <div className="p-3 rounded-full bg-gray-100 text-gray-600">
-                    <FiXCircle size={20} />
+                  <div className="p-3 rounded-full bg-gray-100 text-green-600">
+                    <FiCheckCircle size={20} />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">
-                      Inactive
+                    <p className="text-sm font-medium text-gray-600">Active</p>
+                    <p className="text-2xl font-semibold text-gray-900">
+                      {users.length}
                     </p>
-                    <p className="text-2xl font-semibold text-gray-900">4</p>
                   </div>
                 </div>
               </div>
@@ -168,7 +277,9 @@ const UsersPage = () => {
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-600">Pending</p>
-                    <p className="text-2xl font-semibold text-gray-900">2</p>
+                    <p className="text-2xl font-semibold text-gray-900">
+                      {users.filter((user) => user.status === "Pending").length}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -178,29 +289,34 @@ const UsersPage = () => {
             <div className="mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
               <div className="flex flex-wrap items-center gap-4">
                 <div className="flex items-center space-x-2">
-                  <select className="border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
-                    <option>All Roles</option>
-                    <option>User</option>
-                    <option>Admin</option>
-                    <option>Manager</option>
-                    <option>Receptionist</option>
-                    <option>Housekeeping</option>
+                  <select
+                    name="role"
+                    value={filters.role}
+                    onChange={handleFilterChange}
+                    className="border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="all">All Roles</option>
+                    <option value="admin">Admin</option>
+                    <option value="manager">Manager</option>
+                    <option value="receptionist">Receptionist</option>
+                    <option value="housekeeping">Housekeeping</option>
                   </select>
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <select className="border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
-                    <option>All Statuses</option>
-                    <option>Active</option>
-                    <option>Inactive</option>
-                    <option>Pending</option>
-                    <option>Suspended</option>
+                  <select
+                    name="status"
+                    value="Active"
+                    onChange={handleFilterChange}
+                    className="border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Suspended">Suspended</option>
                   </select>
                 </div>
-
-                <button className="ml-auto flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  Apply Filters
-                </button>
               </div>
             </div>
 
@@ -210,107 +326,106 @@ const UsersPage = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-blue-50">
                     <tr>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider"
-                      >
+                      <th className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider">
                         User ID
                       </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider"
-                      >
+                      <th className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider">
                         Name
                       </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider"
-                      >
+                      <th className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider">
                         Contact
                       </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider"
-                      >
+                      <th className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider">
                         Role
                       </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider"
-                      >
+                      <th className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider">
                         Status
                       </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider"
-                      >
-                        Last Login
+                      <th className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider">
+                        Join Date
                       </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-right text-xs font-medium text-blue-800 uppercase tracking-wider"
-                      >
+                      <th className="px-6 py-3 text-right text-xs font-medium text-blue-800 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {users.map((user) => (
-                      <tr key={user.id} className="hover:bg-blue-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
-                          {user.id}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10">
-                              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                                <FiUser />
+                    {currentItems.length > 0 ? (
+                      currentItems.map((user) => (
+                        <tr key={user.id} className="hover:bg-blue-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+                            {user.id}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0 h-10 w-10">
+                                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                                  <FiUser />
+                                </div>
+                              </div>
+                              <div className="ml-4">
+                                <div className="text-sm font-medium text-gray-900">
+                                  {user.name}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  {user.email}
+                                </div>
                               </div>
                             </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">
-                                {user.name}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {user.email}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {user.phone}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              roleColors[user.role]
-                            }`}
-                          >
-                            {user.role}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              statusColors[user.status]
-                            }`}
-                          >
-                            {user.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {user.lastLogin}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                          <button className="text-blue-600 hover:text-blue-900">
-                            <FiEdit2 />
-                          </button>
-                          <button className="text-red-600 hover:text-red-900">
-                            <FiTrash2 />
-                          </button>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {user.phone}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span
+                              className={`px-2 inline-flex text-xs leading-5 uppercase font-semibold rounded-full ${
+                                roleColors[user.role] ||
+                                "bg-gray-100 text-gray-800"
+                              }`}
+                            >
+                              {user.role}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span
+                              className={`px-2 inline-flex text-xs leading-5 uppercase font-semibold rounded-full ${
+                                statusColors[user.status] ||
+                                "bg-gray-100 text-gray-800"
+                              }`}
+                            >
+                              Active
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {
+                              new Date(user.created_at)
+                                .toISOString()
+                                .split("T")[0]
+                            }
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                            <button className="text-blue-600 hover:text-blue-900">
+                              <FiEdit2 />
+                            </button>
+                            <button
+                              className="text-red-600 hover:text-red-900"
+                              onClick={() => handleDeleteClick(user.id)}
+                            >
+                              <FiTrash2 />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="px-6 py-4 text-center text-gray-500"
+                        >
+                          No users found matching your filters
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -319,21 +434,50 @@ const UsersPage = () => {
             {/* Pagination */}
             <div className="mt-4 flex items-center justify-between">
               <div className="text-sm text-gray-700">
-                Showing <span className="font-medium">1</span> to{" "}
-                <span className="font-medium">5</span> of{" "}
-                <span className="font-medium">24</span> users
+                Showing{" "}
+                <span className="font-medium">{indexOfFirstItem + 1}</span> to{" "}
+                <span className="font-medium">
+                  {Math.min(indexOfLastItem, filteredUsers.length)}
+                </span>{" "}
+                of <span className="font-medium">{filteredUsers.length}</span>{" "}
+                users
               </div>
               <div className="flex space-x-2">
-                <button className="px-3 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                <button
+                  onClick={prevPage}
+                  disabled={currentPage === 1}
+                  className={`px-3 py-1 border rounded-md text-sm font-medium ${
+                    currentPage === 1
+                      ? "border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
                   Previous
                 </button>
-                <button className="px-3 py-1 border border-blue-500 bg-blue-50 text-blue-600 rounded-md text-sm font-medium">
-                  1
-                </button>
-                <button className="px-3 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                  2
-                </button>
-                <button className="px-3 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (number) => (
+                    <button
+                      key={number}
+                      onClick={() => paginate(number)}
+                      className={`px-3 py-1 border rounded-md text-sm font-medium ${
+                        currentPage === number
+                          ? "border-blue-500 bg-blue-50 text-blue-600"
+                          : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      {number}
+                    </button>
+                  )
+                )}
+                <button
+                  onClick={nextPage}
+                  disabled={currentPage === totalPages}
+                  className={`px-3 py-1 border rounded-md text-sm font-medium ${
+                    currentPage === totalPages
+                      ? "border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
                   Next
                 </button>
               </div>
@@ -341,6 +485,50 @@ const UsersPage = () => {
           </main>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-gray-900">
+                Confirm Deletion
+              </h3>
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <FiX size={20} />
+              </button>
+            </div>
+            <p className="mb-6 text-gray-600">
+              Are you sure you want to delete this user? This action cannot be
+              undone.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                disabled={loading}
+              >
+                {loading ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <InsertRoomModal
+        isOpen={isModalOpen}
+        onClose={closeInsertModal}
+        onSuccess={handleInsertSuccess}
+      />
     </>
   );
 };

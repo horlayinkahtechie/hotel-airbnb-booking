@@ -15,6 +15,7 @@ import {
   FiFilter,
   FiEdit2,
   FiTrash2,
+  FiX,
 } from "react-icons/fi";
 import { useEffect, useState } from "react";
 import Spinner from "@/app/_components/Spinner";
@@ -23,8 +24,46 @@ const ReservationsPage = () => {
   const { data: session, status } = useSession();
   const [userBookings, setUserBookings] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [filters, setFilters] = useState({
+    dateRange: "all",
+    roomType: "all",
+    startDate: null,
+    endDate: null,
+  });
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [bookingsToDelete, setBookingsToDelete] = useState(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+
+  // Calculate pagination data
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = userBookings.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(userBookings.length / itemsPerPage);
+
+  // Pagination functions
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  const nextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+  const prevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
 
   const router = useRouter();
+
+  useEffect(() => {
+    if (status === "loading") return;
+    if (!session || session.user.role !== "admin") {
+      router.push("/unauthorized");
+    }
+  }, [session, status, router]);
 
   useEffect(() => {
     async function fetchBookings() {
@@ -69,34 +108,94 @@ const ReservationsPage = () => {
     }
   }, [status]);
 
-  const deleteBooking = async (bookingId) => {
-    try {
-      setUserBookings((prev) => prev.filter((b) => b.booking_id !== bookingId));
-
-      // Confirmation dialog
-      if (!confirm("Are you sure you want to delete this booking?")) {
-        const { data } = await supabase.from("bookings").select("*");
-        setUserBookings(data);
-        return;
-      }
-
-      // Execute deletion
-      const { error } = await supabase
-        .from("bookings")
-        .delete()
-        .eq("booking_id", bookingId);
-
-      if (error) throw error;
-    } catch (err) {
-      // Revert on error
-      const { data } = await supabase.from("bookings").select("*");
-      setUserBookings(data);
+  useEffect(() => {
+    if (status === "authenticated") {
+      applyFilters();
     }
+  }, [filters.dateRange, filters.roomType, status]);
+
+  const applyFilters = () => {
+    setLoading(true);
+
+    // Get current date
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Get start of week (Sunday)
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+
+    let query = supabase
+      .from("bookings")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    // Date filters
+    if (filters.dateRange === "today") {
+      query = query
+        .gte("checkin_date", today.toISOString())
+        .lt("checkin_date", new Date(today.getTime() + 86400000).toISOString());
+    } else if (filters.dateRange === "thisWeek") {
+      query = query
+        .gte("checkin_date", startOfWeek.toISOString())
+        .lt(
+          "checkin_date",
+          new Date(startOfWeek.getTime() + 604800000).toISOString()
+        );
+    } else if (
+      filters.dateRange === "custom" &&
+      filters.startDate &&
+      filters.endDate
+    ) {
+      query = query
+        .gte("checkin_date", filters.startDate.toISOString())
+        .lt(
+          "checkin_date",
+          new Date(filters.endDate.getTime() + 86400000).toISOString()
+        );
+    }
+
+    // room type filter
+    if (filters.roomType !== "all") {
+      query = query.eq("type", filters.roomType);
+    }
+
+    query.then(({ data, error }) => {
+      if (error) {
+        console.error("Filter error:", error);
+      } else {
+        setUserBookings(data || []);
+      }
+      setLoading(false);
+    });
   };
 
-  const confirmDelete = (bookingId) => {
-    if (confirm("Are you sure you want to delete this booking?")) {
-      deleteBooking(bookingId);
+  const handleDeleteClick = (userId) => {
+    setBookingsToDelete(userId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from("bookings")
+        .delete("*")
+        .eq("booking_id", bookingsToDelete);
+
+      if (error) throw error;
+
+      // Update local state
+      setUserBookings(
+        userBookings.filter(
+          (userBookings) => userBookings.booking_id !== bookingsToDelete
+        )
+      );
+      setShowDeleteModal(false);
+    } catch (err) {
+      console.error("Delete failed:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -124,12 +223,20 @@ const ReservationsPage = () => {
             {/* Filters */}
             <div className="mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
               <div className="flex flex-wrap items-center gap-4">
+                {/* Date Filter */}
                 <div className="flex items-center space-x-2">
                   <FiCalendar className="text-blue-600" />
-                  <select className="border border-gray-300 cursor-pointer rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
-                    <option>All Dates</option>
-                    <option>Today</option>
-                    <option>This Week</option>
+                  <select
+                    className="border border-gray-300 cursor-pointer rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                    value={filters.dateRange}
+                    onChange={(e) =>
+                      setFilters({ ...filters, dateRange: e.target.value })
+                    }
+                  >
+                    <option value="all">All Dates</option>
+                    <option value="today">Today</option>
+                    <option value="thisWeek">This Week</option>
+                    <option value="custom">Custom Range</option>
                   </select>
                 </div>
 
@@ -142,17 +249,28 @@ const ReservationsPage = () => {
                   </select>
                 </div>
 
+                {/* Room Type Filter */}
                 <div className="flex items-center space-x-2">
                   <FiHome className="text-blue-600" />
-                  <select className="border border-gray-300 cursor-pointer rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
-                    <option>All Room Types</option>
-                    <option>Standard</option>
-                    <option>Deluxe</option>
-                    <option>Suite</option>
+                  <select
+                    className="border border-gray-300 cursor-pointer rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                    value={filters.roomType}
+                    onChange={(e) =>
+                      setFilters({ ...filters, roomType: e.target.value })
+                    }
+                  >
+                    <option value="all">All Room Types</option>
+                    <option value="Shortlet">Shortlet</option>
+                    <option value="Hotel">Hotel</option>
+                    <option value="Apartment">Apartment</option>
                   </select>
                 </div>
 
-                <button className="ml-auto flex items-center cursor-pointer px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                {/* Filter button */}
+                <button
+                  onClick={applyFilters}
+                  className="ml-auto flex items-center cursor-pointer px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
                   <FiFilter className="mr-2" />
                   Apply Filters
                 </button>
@@ -193,7 +311,7 @@ const ReservationsPage = () => {
                         scope="col"
                         className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider"
                       >
-                        Price
+                        Price/night
                       </th>
                       <th
                         scope="col"
@@ -240,90 +358,20 @@ const ReservationsPage = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {/* {userBookings.map((reservation) => (
-                      <tr key={reservation.id} className="hover:bg-blue-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
-                          {reservation.id}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
-                          {reservation.listing_id}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {reservation.full_name}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {reservation.listing_name}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {reservation.price}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {reservation.type}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div className="flex items-center">
-                            <FiCalendar className="mr-1 text-blue-500" />
-                            {reservation.checkin_date} -{" "}
-                            {reservation.checkout_date}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {reservation.no_of_days}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                        ${
-                          reservation.payment_status === "Paid"
-                            ? "bg-green-100 text-green-800"
-                            : reservation.status === "Pending"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                          >
-                            {reservation.payment_status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {reservation.email}
-                        </td>
-
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {reservation.total}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button className="text-blue-600 hover:text-blue-900 mr-3 cursor-pointer">
-                            <FiEdit2 />
-                          </button>
-                          <button
-                            onClick={() =>
-                              deleteBooking(reservation.booking_id)
-                            }
-                            className="text-red-600 hover:text-red-900 cursor-poin p-1 rounded hover:bg-red-50 transition-colors"
-                          >
-                            <FiTrash2 />
-                          </button>
-                        </td>
-                      </tr>
-                    ))} */}
-
                     {loading ? (
                       <tr>
                         <td colSpan={12} className="px-6 py-4 text-center">
                           <Spinner />
                         </td>
                       </tr>
-                    ) : userBookings.length > 0 ? (
-                      userBookings.map((reservation) => (
+                    ) : currentItems.length > 0 ? (
+                      currentItems.map((reservation) => (
                         <tr
                           key={reservation.booking_id}
                           className="hover:bg-blue-50"
                         >
-                          {" "}
-                          {/* Changed key to booking_id */}
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
                             {reservation.booking_id || "N/A"}{" "}
-                            {/* Changed to booking_id */}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
                             {reservation.listing_id || "N/A"}
@@ -336,7 +384,6 @@ const ReservationsPage = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             ${parseFloat(reservation.price || 0).toFixed(2)}{" "}
-                            {/* Format price */}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {reservation.type || "Unknown"}
@@ -370,19 +417,15 @@ const ReservationsPage = () => {
                             {reservation.email || "No email"}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            ${parseFloat(reservation.total || 0).toFixed(2)}{" "}
-                            {/* Format total */}
+                            ${parseFloat(reservation.price || 0).toFixed(2)}{" "}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                            <button
-                              onClick={() => handleEdit(reservation.booking_id)}
-                              className="text-blue-600 hover:text-blue-900 p-1 cursor-pointer rounded hover:bg-blue-50 transition-colors"
-                            >
+                            <button className="text-blue-600 hover:text-blue-900 p-1 cursor-pointer rounded hover:bg-blue-50 transition-colors">
                               <FiEdit2 />
                             </button>
                             <button
                               onClick={() =>
-                                deleteBooking(reservation.booking_id)
+                                handleDeleteClick(reservation.booking_id)
                               }
                               className="text-red-600 cursor-pointer hover:text-red-900 p-1 rounded hover:bg-red-50 transition-colors"
                             >
@@ -409,21 +452,50 @@ const ReservationsPage = () => {
             {/* Pagination */}
             <div className="mt-4 flex items-center justify-between">
               <div className="text-sm text-gray-700">
-                Showing <span className="font-medium">1</span> to{" "}
-                <span className="font-medium">10</span> of{" "}
-                <span className="font-medium">24</span> results
+                Showing{" "}
+                <span className="font-medium">{indexOfFirstItem + 1}</span> to{" "}
+                <span className="font-medium">
+                  {Math.min(indexOfLastItem, userBookings.length)}
+                </span>{" "}
+                of <span className="font-medium">{userBookings.length}</span>{" "}
+                results
               </div>
               <div className="flex space-x-2">
-                <button className="px-3 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                <button
+                  onClick={prevPage}
+                  disabled={currentPage === 1}
+                  className={`px-3 py-1 border rounded-md text-sm font-medium ${
+                    currentPage === 1
+                      ? "border-gray-300 bg-white text-gray-400 cursor-not-allowed"
+                      : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
                   Previous
                 </button>
-                <button className="px-3 py-1 border border-blue-500 bg-blue-50 text-blue-600 rounded-md text-sm font-medium">
-                  1
-                </button>
-                <button className="px-3 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                  2
-                </button>
-                <button className="px-3 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (number) => (
+                    <button
+                      key={number}
+                      onClick={() => paginate(number)}
+                      className={`px-3 py-1 border rounded-md text-sm font-medium ${
+                        currentPage === number
+                          ? "border-blue-500 bg-blue-50 text-blue-600"
+                          : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      {number}
+                    </button>
+                  )
+                )}
+                <button
+                  onClick={nextPage}
+                  disabled={currentPage === totalPages}
+                  className={`px-3 py-1 border rounded-md text-sm font-medium ${
+                    currentPage === totalPages
+                      ? "border-gray-300 bg-white text-gray-400 cursor-not-allowed"
+                      : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
                   Next
                 </button>
               </div>
@@ -431,6 +503,44 @@ const ReservationsPage = () => {
           </main>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 backdrop-blur bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-gray-900">
+                Confirm Deletion
+              </h3>
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <FiX size={20} />
+              </button>
+            </div>
+            <p className="mb-6 text-gray-600">
+              Are you sure you want to delete this booking? This action cannot
+              be undone.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                disabled={loading}
+              >
+                {loading ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
