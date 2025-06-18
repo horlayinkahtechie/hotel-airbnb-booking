@@ -19,7 +19,7 @@ export default function Hero() {
         <div className="lg:p-20 p-10 rounded-xl text-center max-w-2xl">
           <h1 className="text-4xl font-bold mb-4">Find your perfect stay</h1>
           <p className="text-gray-700 mb-6 text-[18px]">
-            Rooms tailored for your comfort — book your perfect stay today.
+            Rooms tailored for your comfort. Book your perfect stay today.
           </p>
           <Link href="/reservation" className="w-full">
             <button className="bg-blue-600 w-full text-[18.5px] cursor-pointer hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-md transition duration-300">

@@ -1,10 +1,9 @@
 "use client";
 import AdminNavbar from "@/app/_components/adminNav";
 import AdminSidebar from "@/app/_components/adminSidebar";
-import Spinner from "@/app/_components/Spinner";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/router";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import {
   FiUser,
   FiMail,
@@ -16,7 +15,7 @@ import {
 } from "react-icons/fi";
 
 const AdminProfilePage = () => {
-  const { data: session, status } = useSession;
+  const { data: session, status } = useSession();
   const [loading, setIsLoading] = useState(false);
 
   const router = useRouter();
