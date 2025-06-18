@@ -14,7 +14,8 @@ import {
   FiTrash2,
   FiSearch,
 } from "react-icons/fi";
-import { useRouter } from "next/router";
+
+import { useRouter } from "next/navigation";
 
 const AdminMessages = () => {
   const { data: session, status } = useSession();
