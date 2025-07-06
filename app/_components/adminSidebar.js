@@ -1,18 +1,29 @@
 "use client";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import {
+  Menu,
+  X,
+  LayoutDashboard,
+  CalendarCheck,
+  CalendarDays,
+  Hotel,
+  MessageSquare,
+  BarChart2,
+  Users,
+  User,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const links = [
-  { name: "Dashboard", href: "/admin/dashboard" },
-  { name: "Bookings", href: "/admin/bookings" },
-  { name: "Reservations", href: "/admin/reservations" },
-  { name: "Rooms", href: "/admin/rooms" },
-  { name: "Messages", href: "/admin/messages" },
-  { name: "Analytics", href: "/admin/analytics" },
-  { name: "Users", href: "/admin/users" },
-  { name: "Your Profile", href: "/admin/profile" },
+  { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+  { name: "Bookings", href: "/admin/bookings", icon: CalendarCheck },
+  { name: "Reservations", href: "/admin/reservations", icon: CalendarDays },
+  { name: "Rooms", href: "/admin/rooms", icon: Hotel },
+  { name: "Messages", href: "/admin/messages", icon: MessageSquare },
+  { name: "Analytics", href: "/admin/analytics", icon: BarChart2 },
+  { name: "Users", href: "/admin/users", icon: Users },
+  { name: "Your Profile", href: "/admin/profile", icon: User },
 ];
 
 export default function AdminSidebar() {
@@ -39,18 +50,22 @@ export default function AdminSidebar() {
           Hotel Admin
         </div>
         <nav className="flex-1 flex flex-col gap-1 p-4">
-          {links.map((link) => (
-            <Link
-              key={link.name}
-              href={link.href}
-              onClick={closeSidebar}
-              className={`px-4 py-2 rounded hover:bg-gray-800 ${
-                pathname === link.href ? "bg-gray-800" : ""
-              }`}
-            >
-              {link.name}
-            </Link>
-          ))}
+          {links.map((link) => {
+            const Icon = link.icon;
+            return (
+              <Link
+                key={link.name}
+                href={link.href}
+                onClick={closeSidebar}
+                className={`flex items-center gap-3 px-4 py-5 rounded hover:bg-gray-800 ${
+                  pathname === link.href ? "bg-gray-800" : ""
+                }`}
+              >
+                <Icon size={18} />
+                {link.name}
+              </Link>
+            );
+          })}
         </nav>
       </div>
 

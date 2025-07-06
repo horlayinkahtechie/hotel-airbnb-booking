@@ -1,4 +1,5 @@
 "use client";
+
 import Footer from "@/app/_components/Footer";
 import Navbar from "@/app/_components/Navbar";
 import { signIn, useSession } from "next-auth/react";
@@ -12,16 +13,20 @@ export default function SignInPage() {
 
   useEffect(() => {
     if (status === "authenticated") {
-      router.push("/");
+      const role = session?.user?.role;
+      if (role === "admin") {
+        router.push("/admin/dashboard");
+      } else {
+        router.push("/");
+      }
     }
-  }, [status, router]);
+  }, [status, session, router]);
 
   const handleSignIn = async () => {
     try {
       await signIn("google", { callbackUrl: "/" });
     } catch (error) {
       console.error("Sign in error:", error);
-      console.log(error);
     }
   };
 

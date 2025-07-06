@@ -1,7 +1,6 @@
 "use client";
 import AdminNavbar from "@/app/_components/adminNav";
 import AdminSidebar from "@/app/_components/adminSidebar";
-import Spinner from "@/app/_components/Spinner";
 import { supabase } from "@/app/lib/supabase";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";

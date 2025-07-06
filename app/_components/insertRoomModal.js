@@ -1,8 +1,8 @@
 "use client";
-
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { supabase } from "@/app/lib/supabase";
-import { BedDouble, X, CheckCircle2 } from "lucide-react";
+import { BedDouble, X, CheckCircle2, Upload, Link } from "lucide-react";
+import Image from "next/image";
 
 export default function InsertRoomModal({ isOpen, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -13,23 +13,62 @@ export default function InsertRoomModal({ isOpen, onClose, onSuccess }) {
     capacity: "1",
     amenities: "",
     status: "available",
+    image_url: "",
   });
+  const [imageFile, setImageFile] = useState(null);
+  const [uploadMethod, setUploadMethod] = useState("url");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const fileInputRef = useRef(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      setFormData((prev) => ({ ...prev, image_url: "" }));
+    }
+  };
+
+  const uploadImageToSupabase = async (file) => {
+    if (!file) return null;
+
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${Date.now()}.${fileExt}`;
+    const filePath = `room-images/${fileName}`;
+
+    const { data, error } = await supabase.storage
+      .from("room-images")
+      .upload(filePath, file);
+
+    if (error) throw error;
+
+    // Get public URL
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("room-images").getPublicUrl(filePath);
+
+    return publicUrl;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     setIsLoading(true);
     setError("");
 
     try {
+      let imageUrl = formData.image_url;
+
+      // Handle file upload if method is file and file is selected
+      if (uploadMethod === "file" && imageFile) {
+        imageUrl = await uploadImageToSupabase(imageFile);
+      }
+
       const { error } = await supabase.from("rooms").insert([
         {
           ...formData,
@@ -38,7 +77,8 @@ export default function InsertRoomModal({ isOpen, onClose, onSuccess }) {
           amenities: formData.amenities
             .split(",")
             .map((item) => item.trim())
-            .filter(Boolean), // Filter out empty strings
+            .filter(Boolean),
+          image_url: imageUrl, // Set the image URL (either from input or upload)
         },
       ]);
 
@@ -53,12 +93,10 @@ export default function InsertRoomModal({ isOpen, onClose, onSuccess }) {
         capacity: "1",
         amenities: "",
         status: "available",
+        image_url: "",
       });
-
-      // Show success modal
+      setImageFile(null);
       setShowSuccessModal(true);
-
-      // Don't close the form modal yet - wait for user to acknowledge success
     } catch (err) {
       setError(err.message || "Failed to add room");
       console.error("Insert error:", err);
@@ -69,8 +107,8 @@ export default function InsertRoomModal({ isOpen, onClose, onSuccess }) {
 
   const closeSuccessModal = () => {
     setShowSuccessModal(false);
-    onClose(); // Close the form modal after success is acknowledged
-    if (onSuccess) onSuccess(); // Call success callback
+    onClose();
+    if (onSuccess) onSuccess();
   };
 
   if (!isOpen) return null;
@@ -101,63 +139,67 @@ export default function InsertRoomModal({ isOpen, onClose, onSuccess }) {
               </div>
             )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Room Number *
-              </label>
-              <input
-                type="text"
-                name="room_number"
-                value={formData.room_number}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
-              />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Room Number *
+                </label>
+                <input
+                  type="text"
+                  name="room_number"
+                  value={formData.room_number}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Room ID *
+                </label>
+                <input
+                  type="text"
+                  name="room_id"
+                  value={formData.room_id}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Room ID *
-              </label>
-              <input
-                type="text"
-                name="room_id"
-                value={formData.room_id}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Room Type *
+                </label>
+                <select
+                  name="room_type"
+                  value={formData.room_type}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="Basic">Basic</option>
+                  <option value="Standard">Standard</option>
+                  <option value="Luxury">Luxury</option>
+                </select>
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Room Type *
-              </label>
-              <select
-                name="room_type"
-                value={formData.room_type}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="Basic">Basic</option>
-                <option value="Standard">Standard</option>
-                <option value="Luxury">Luxury</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Price per Night (₦) *
-              </label>
-              <input
-                type="number"
-                name="price_per_night"
-                value={formData.price_per_night}
-                onChange={handleChange}
-                required
-                min="0"
-                className="w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Price per Night (₦) *
+                </label>
+                <input
+                  type="number"
+                  name="price_per_night"
+                  value={formData.price_per_night}
+                  onChange={handleChange}
+                  required
+                  min="0"
+                  className="w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
             </div>
 
             <div>
@@ -206,6 +248,98 @@ export default function InsertRoomModal({ isOpen, onClose, onSuccess }) {
                 <option value="maintenance">Maintenance</option>
               </select>
             </div>
+
+            {/* Image Upload Section */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Room Image
+              </label>
+
+              <div className="flex space-x-2 mb-3">
+                <button
+                  type="button"
+                  onClick={() => setUploadMethod("url")}
+                  className={`flex items-center px-3 py-2 rounded-md text-sm ${
+                    uploadMethod === "url"
+                      ? "bg-blue-100 text-blue-700"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  <Link className="w-4 h-4 mr-1" />
+                  Use URL
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUploadMethod("file");
+                    fileInputRef.current?.click();
+                  }}
+                  className={`flex items-center px-3 py-2 rounded-md text-sm ${
+                    uploadMethod === "file"
+                      ? "bg-blue-100 text-blue-700"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  <Upload className="w-4 h-4 mr-1" />
+                  Upload File
+                </button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept="image/*"
+                  className="hidden"
+                />
+              </div>
+
+              {uploadMethod === "url" ? (
+                <input
+                  type="url"
+                  name="image_url"
+                  value={formData.image_url}
+                  onChange={handleChange}
+                  placeholder="https://example.com/image.jpg"
+                  className="w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
+                />
+              ) : (
+                <div className="border-2 border-dashed rounded-md p-4 text-center">
+                  {imageFile ? (
+                    <div className="space-y-2">
+                      <Image
+                        src={URL.createObjectURL(imageFile)}
+                        alt="Preview"
+                        width={100}
+                        height={100}
+                        className="max-h-40 mx-auto rounded-md"
+                      />
+                      <p className="text-sm text-gray-600">{imageFile.name}</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setImageFile(null);
+                          fileInputRef.current.value = "";
+                        }}
+                        className="text-sm text-red-600 hover:text-red-800"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Upload className="w-8 h-8 mx-auto text-gray-400" />
+                      <p className="text-sm text-gray-600">
+                        Click to upload or drag and drop
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        PNG, JPG, GIF up to 5MB
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Rest of your form fields... */}
 
             <div className="flex justify-end space-x-3 pt-4">
               <button

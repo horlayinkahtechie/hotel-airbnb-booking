@@ -15,16 +15,27 @@ import {
   FiEye,
   FiCheckCircle,
   FiXCircle,
+  FiChevronLeft,
+  FiChevronRight,
 } from "react-icons/fi";
 
 const RoomsPage = () => {
-  // const [rooms, setRooms] = useState([]);
   const { data: session, status } = useSession();
   const [totalRoomsData, setTotalRooms] = useState([]);
+  const [filteredRooms, setFilteredRooms] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setIsLoading] = useState(false);
-
   const router = useRouter();
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(5);
+
+  // Filter state
+  const [filters, setFilters] = useState({
+    roomType: "all",
+    status: "all",
+    search: "",
+  });
 
   useEffect(() => {
     if (status === "loading") return;
@@ -33,92 +44,98 @@ const RoomsPage = () => {
     }
   }, [session, status, router]);
 
-  // Sample room data
-  const rooms = [
-    {
-      id: "RM-101",
-      type: "Deluxe Suite",
-      capacity: 2,
-      price: "$250/night",
-      status: "Available",
-      amenities: ["WiFi", "AC", "TV", "Mini Bar"],
-      lastCleaned: "2023-06-10",
-    },
-    {
-      id: "RM-102",
-      type: "Standard Room",
-      capacity: 2,
-      price: "$150/night",
-      status: "Booked",
-      amenities: ["WiFi", "AC", "TV"],
-      lastCleaned: "2023-06-09",
-    },
-    {
-      id: "RM-201",
-      type: "Executive Suite",
-      capacity: 4,
-      price: "$350/night",
-      status: "Maintenance",
-      amenities: ["WiFi", "AC", "TV", "Mini Bar", "Jacuzzi"],
-      lastCleaned: "2023-06-08",
-    },
-    {
-      id: "RM-202",
-      type: "Standard Room",
-      capacity: 2,
-      price: "$150/night",
-      status: "Available",
-      amenities: ["WiFi", "AC", "TV"],
-      lastCleaned: "2023-06-10",
-    },
-    {
-      id: "RM-301",
-      type: "Family Room",
-      capacity: 4,
-      price: "$300/night",
-      status: "Booked",
-      amenities: ["WiFi", "AC", "TV", "Sofa"],
-      lastCleaned: "2023-06-07",
-    },
-  ];
   const openInsertModal = () => setIsModalOpen(true);
   const closeInsertModal = () => setIsModalOpen(false);
+
   const handleInsertSuccess = () => {
-    const fetchRooms = async () => {
-      const { data, error } = await supabase
-        .from("rooms")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (!error) setTotalRooms(data || []);
-    };
     fetchRooms();
   };
 
-  useEffect(() => {
-    const fetchTotalRooms = async () => {
-      setIsLoading(true);
-      const { data: totalRooms, error } = await supabase
-        .from("rooms")
-        .select("*");
+  const fetchRooms = async () => {
+    setIsLoading(true);
+    const { data: totalRooms, error } = await supabase
+      .from("rooms")
+      .select("*");
 
-      if (!error) {
-        setTotalRooms(totalRooms);
-        console.log("Total rooms", totalRooms);
-        setIsLoading(true);
-      } else {
-        setTotalRooms([]);
-        setIsLoading(false);
-      }
-    };
-    fetchTotalRooms();
+    if (!error) {
+      setTotalRooms(totalRooms || []);
+      setFilteredRooms(totalRooms || []);
+    } else {
+      setTotalRooms([]);
+      setFilteredRooms([]);
+    }
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchRooms();
   }, []);
 
-  const statusColors = {
-    Available: "bg-green-100 text-green-800",
-    Booked: "bg-blue-100 text-blue-800",
-    Maintenance: "bg-yellow-100 text-yellow-800",
-    Cleaning: "bg-purple-100 text-purple-800",
+  // Apply filters whenever filters or rooms change
+  useEffect(() => {
+    const filtered = totalRoomsData.filter((room) => {
+      const matchesType =
+        filters.roomType === "all" || room.room_type === filters.roomType;
+      const matchesStatus =
+        filters.status === "all" || room.status === filters.status;
+      const matchesSearch =
+        filters.search === "" ||
+        room.room_id.toLowerCase().includes(filters.search.toLowerCase()) ||
+        room.room_type.toLowerCase().includes(filters.search.toLowerCase());
+
+      return matchesType && matchesStatus && matchesSearch;
+    });
+    setFilteredRooms(filtered);
+    setCurrentPage(1);
+  }, [filters, totalRoomsData]);
+
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredRooms.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredRooms.length / itemsPerPage);
+
+  // Pagination functions
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  const nextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
   };
+  const prevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  // Filter handlers
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters({ ...filters, [name]: value });
+  };
+
+  const handleSearchChange = (e) => {
+    setFilters({ ...filters, search: e.target.value });
+  };
+
+  const statusColors = {
+    available: "bg-green-100 text-green-800",
+    booked: "bg-blue-100 text-blue-800",
+    maintenance: "bg-yellow-100 text-yellow-800",
+  };
+
+  // Unique room types for filter dropdown
+  const roomTypes = [...new Set(totalRoomsData.map((room) => room.room_type))];
+
+  const availableRooms = totalRoomsData.filter(
+    (room) => room.status === "available"
+  ).length;
+  const occupiedRooms = totalRoomsData.filter(
+    (room) => room.status === "occupied"
+  ).length;
+  const maintenanceRooms = totalRoomsData.filter(
+    (room) => room.status === "maintenance"
+  ).length;
 
   return (
     <>
@@ -151,6 +168,8 @@ const RoomsPage = () => {
                     type="text"
                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     placeholder="Search rooms..."
+                    value={filters.search}
+                    onChange={handleSearchChange}
                   />
                 </div>
                 <button
@@ -174,7 +193,6 @@ const RoomsPage = () => {
                     <p className="text-sm font-medium text-gray-600">
                       Total Rooms
                     </p>
-
                     <p className="text-2xl font-semibold text-gray-900">
                       {totalRoomsData.length}
                     </p>
@@ -190,7 +208,9 @@ const RoomsPage = () => {
                     <p className="text-sm font-medium text-gray-600">
                       Available
                     </p>
-                    <p className="text-2xl font-semibold text-gray-900">12</p>
+                    <p className="text-2xl font-semibold text-gray-900">
+                      {availableRooms}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -201,7 +221,9 @@ const RoomsPage = () => {
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-600">Booked</p>
-                    <p className="text-2xl font-semibold text-gray-900">8</p>
+                    <p className="text-2xl font-semibold text-gray-900">
+                      {occupiedRooms}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -214,7 +236,9 @@ const RoomsPage = () => {
                     <p className="text-sm font-medium text-gray-600">
                       Maintenance
                     </p>
-                    <p className="text-2xl font-semibold text-gray-900">4</p>
+                    <p className="text-2xl font-semibold text-gray-900">
+                      {maintenanceRooms}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -224,37 +248,33 @@ const RoomsPage = () => {
             <div className="mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
               <div className="flex flex-wrap items-center gap-4">
                 <div className="flex items-center space-x-2">
-                  <select className="border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
-                    <option>All Room Types</option>
-                    <option>Standard</option>
-                    <option>Deluxe</option>
-                    <option>Suite</option>
-                    <option>Family</option>
+                  <select
+                    name="roomType"
+                    value={filters.roomType}
+                    onChange={handleFilterChange}
+                    className="border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="all">All Room Types</option>
+                    {roomTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <select className="border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
-                    <option>All Statuses</option>
-                    <option>Available</option>
-                    <option>Booked</option>
-                    <option>Maintenance</option>
-                    <option>Cleaning</option>
+                  <select
+                    name="status"
+                    value={filters.status}
+                    onChange={handleFilterChange}
+                    className="border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="available">Available</option>
+                    <option value="occupied">Occupied</option>
                   </select>
                 </div>
-
-                <div className="flex items-center space-x-2">
-                  <select className="border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
-                    <option>All Capacities</option>
-                    <option>1-2 Guests</option>
-                    <option>3-4 Guests</option>
-                    <option>5+ Guests</option>
-                  </select>
-                </div>
-
-                <button className="ml-auto flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  Apply Filters
-                </button>
               </div>
             </div>
 
@@ -264,87 +284,72 @@ const RoomsPage = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-blue-50">
                     <tr>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider"
-                      >
+                      <th className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider">
                         Room ID
                       </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider"
-                      >
+                      <th className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider">
                         Type
                       </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider"
-                      >
+                      <th className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider">
                         Capacity
                       </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider"
-                      >
-                        Price
+                      <th className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider">
+                        Price per night
                       </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider"
-                      >
+                      <th className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider">
                         Status
                       </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-blue-800 uppercase tracking-wider"
-                      >
-                        Last Cleaned
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-right text-xs font-medium text-blue-800 uppercase tracking-wider"
-                      >
+                      <th className="px-6 py-3 text-right text-xs font-medium text-blue-800 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {rooms.map((room) => (
-                      <tr key={room.id} className="hover:bg-blue-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
-                          {room.id}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {room.type}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {room.capacity} Guests
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                          {room.price}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              statusColors[room.status]
-                            }`}
-                          >
-                            {room.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {room.lastCleaned}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                          <button className="text-blue-600 hover:text-blue-900">
-                            <FiEdit2 />
-                          </button>
-                          <button className="text-red-600 hover:text-red-900">
-                            <FiTrash2 />
-                          </button>
+                    {currentItems.length > 0 ? (
+                      currentItems.map((room) => (
+                        <tr key={room.id} className="hover:bg-blue-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+                            {room.room_id}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {room.room_type}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {room.capacity} Guests
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                            {room.price_per_night}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span
+                              className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                statusColors[room.status] ||
+                                "bg-gray-100 text-gray-800"
+                              }`}
+                            >
+                              {room.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                            <button className="text-blue-600 hover:text-blue-900">
+                              <FiEdit2 />
+                            </button>
+                            <button className="text-red-600 hover:text-red-900">
+                              <FiTrash2 />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="px-6 py-4 text-center text-gray-500"
+                        >
+                          No rooms found matching your filters
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -353,22 +358,53 @@ const RoomsPage = () => {
             {/* Pagination */}
             <div className="mt-4 flex items-center justify-between">
               <div className="text-sm text-gray-700">
-                Showing <span className="font-medium">1</span> to{" "}
-                <span className="font-medium">5</span> of{" "}
-                <span className="font-medium">24</span> rooms
+                Showing{" "}
+                <span className="font-medium">{indexOfFirstItem + 1}</span> to{" "}
+                <span className="font-medium">
+                  {Math.min(indexOfLastItem, filteredRooms.length)}
+                </span>{" "}
+                of <span className="font-medium">{filteredRooms.length}</span>{" "}
+                rooms
               </div>
               <div className="flex space-x-2">
-                <button className="px-3 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                  Previous
+                <button
+                  onClick={prevPage}
+                  disabled={currentPage === 1}
+                  className={`px-3 py-1 border rounded-md text-sm font-medium ${
+                    currentPage === 1
+                      ? "border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  <FiChevronLeft className="inline" />
                 </button>
-                <button className="px-3 py-1 border border-blue-500 bg-blue-50 text-blue-600 rounded-md text-sm font-medium">
-                  1
-                </button>
-                <button className="px-3 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                  2
-                </button>
-                <button className="px-3 py-1 border border-gray-300 rounded-md bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                  Next
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (number) => (
+                    <button
+                      key={number}
+                      onClick={() => paginate(number)}
+                      className={`px-3 py-1 border rounded-md text-sm font-medium ${
+                        currentPage === number
+                          ? "border-blue-500 bg-blue-50 text-blue-600"
+                          : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      {number}
+                    </button>
+                  )
+                )}
+
+                <button
+                  onClick={nextPage}
+                  disabled={currentPage === totalPages}
+                  className={`px-3 py-1 border rounded-md text-sm font-medium ${
+                    currentPage === totalPages
+                      ? "border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  <FiChevronRight className="inline" />
                 </button>
               </div>
             </div>

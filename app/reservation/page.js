@@ -154,9 +154,9 @@ export default function BookPage() {
                 >
                   <option value="">Select a room type</option>
 
+                  <option value="basic">Basic</option>
                   <option value="standard">Standard</option>
-                  <option value="deluxe">Deluxe</option>
-                  <option value="suite">Suite</option>
+                  <option value="luxury">Luxury</option>
                 </select>
               </div>
 

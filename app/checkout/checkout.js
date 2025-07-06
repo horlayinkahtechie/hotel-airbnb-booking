@@ -18,59 +18,71 @@ const PaymentPage = dynamic(() => import("./payment/PaymentComponent"), {
 export default function Checkout() {
   const searchParams = useSearchParams();
 
-  const name = searchParams.get("name") || "";
-  const location = searchParams.get("location") || "";
-  const priceString = searchParams.get("price") || "₦0";
-  const type = searchParams.get("type") || "";
-  const image = searchParams.get("image") || "";
-  const listing_id = searchParams.get("listing_id") || "";
+  const capacity = searchParams.get("capacity") || "";
+  const amenities = searchParams.get("amenities") || "";
+  const price_per_night = searchParams.get("price_per_night") || "₦0";
+  const room_type = searchParams.get("room_type") || "";
+  const image_url = searchParams.get("image_url") || "";
+  const room_id = searchParams.get("room_id") || "";
+  const room_number = searchParams.get("room_number") || "";
 
-  const priceNumber = Number(priceString.replace(/[^\d]/g, ""));
+  const priceNumber = Number(price_per_night.replace(/[^\d.]/g, "")) || 0;
   const [days, setDays] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState("Paystack");
   const [checkInDate, setCheckInDate] = useState(null);
   const [checkOutDate, setCheckOutDate] = useState("");
   const [fullName, setFullName] = useState("");
   const [bookedDates, setBookedDates] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const totalPrice = days * priceNumber;
+  const total_price = days * priceNumber;
 
-  const stringToDate = (str) => new Date(str + "T00:00:00");
-
+  // Fetch already booked dates for this room
   useEffect(() => {
-    async function fetchBookedDates() {
-      if (!listing_id) return;
+    const fetchBookedDates = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("bookings")
+          .select("checkin_date, checkout_date")
+          .eq("room_id", room_id)
+          .eq("payment_status", "Paid"); // Only consider Paid bookings
 
-      const { data, error } = await supabase
-        .from("bookings")
-        .select("checkin_date, checkout_date")
-        .eq("listing_id", listing_id);
+        if (error) throw error;
 
-      if (error) {
-        console.error("Error fetching booked dates:", error);
-      } else {
-        console.log("Booked Room fetched succesfully");
-      }
+        if (data && data.length > 0) {
+          const dates = data.flatMap((booking) => {
+            const startDate = new Date(booking.checkin_date);
+            const endDate = new Date(booking.checkout_date);
+            const datesInRange = [];
 
-      const dates = data.flatMap(({ checkin_date, checkout_date }) => {
-        const start = stringToDate(checkin_date);
-        const end = stringToDate(checkout_date);
-        const tempDates = [];
+            // Include all dates between checkin and checkout
+            const currentDate = new Date(startDate);
+            while (currentDate <= endDate) {
+              datesInRange.push(new Date(currentDate));
+              currentDate.setDate(currentDate.getDate() + 1);
+            }
 
-        while (start <= end) {
-          tempDates.push(new Date(start));
-          start.setDate(start.getDate() + 1);
+            return datesInRange;
+          });
+
+          setBookedDates(dates);
         }
+      } catch (err) {
+        console.error("Error fetching booked dates:", err);
+        setError("Failed to load booking availability");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-        return tempDates;
-      });
-
-      setBookedDates(dates);
+    if (room_id) {
+      fetchBookedDates();
     }
+  }, [room_id]);
 
-    fetchBookedDates();
-  }, [listing_id]);
-
+  // Update checkout date when checkin date or days change
   useEffect(() => {
     if (checkInDate && days > 0) {
       const out = new Date(checkInDate);
@@ -81,11 +93,55 @@ export default function Checkout() {
     }
   }, [checkInDate, days]);
 
+  // Check if selected dates are available
+  const isDateRangeAvailable = () => {
+    if (!checkInDate || !checkOutDate) return false;
+
+    const start = new Date(checkInDate);
+    const end = new Date(checkOutDate);
+    const current = new Date(start);
+
+    while (current <= end) {
+      if (
+        bookedDates.some(
+          (date) => date.toDateString() === current.toDateString()
+        )
+      ) {
+        return false;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+
+    return true;
+  };
+
+  const handleCheckInChange = (date) => {
+    setCheckInDate(date);
+    // Reset days if new check-in date is in booked range
+    if (bookedDates.some((d) => d.toDateString() === date.toDateString())) {
+      setDays(1);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
   return (
     <>
       <Navbar />
       <div className="max-w-6xl mx-auto mt-12 p-6 bg-white rounded-xl shadow-md">
         <h1 className="text-3xl font-bold mb-6 text-center">Checkout</h1>
+
+        {error && (
+          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6">
+            <p>{error}</p>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* LEFT: Customer Form */}
@@ -110,12 +166,22 @@ export default function Checkout() {
               </label>
               <DatePicker
                 selected={checkInDate}
-                onChange={(date) => setCheckInDate(date)}
+                onChange={handleCheckInChange}
                 excludeDates={bookedDates}
                 minDate={new Date()}
                 placeholderText="Select a check-in date"
                 className="w-full border p-3 rounded-lg"
+                required
               />
+              {checkInDate &&
+                bookedDates.some(
+                  (d) =>
+                    d.toDateString() === new Date(checkInDate).toDateString()
+                ) && (
+                  <p className="text-red-500 text-sm mt-1">
+                    This date is already booked
+                  </p>
+                )}
             </div>
 
             <div>
@@ -130,6 +196,7 @@ export default function Checkout() {
                   setDays(Math.max(1, parseInt(e.target.value) || 1))
                 }
                 className="w-full border p-3 rounded-lg"
+                required
               />
             </div>
 
@@ -141,6 +208,27 @@ export default function Checkout() {
                 type="text"
                 readOnly
                 value={checkOutDate}
+                className={`w-full border p-3 rounded-lg ${
+                  checkOutDate && !isDateRangeAvailable()
+                    ? "bg-red-100 border-red-300"
+                    : "bg-gray-100"
+                }`}
+              />
+              {checkOutDate && !isDateRangeAvailable() && (
+                <p className="text-red-500 text-sm mt-1">
+                  Some dates in this range are already booked
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-lg font-semibold mb-2">
+                Room Number
+              </label>
+              <input
+                readOnly
+                type="number"
+                value={room_number}
                 className="w-full border p-3 rounded-lg bg-gray-100"
               />
             </div>
@@ -152,7 +240,7 @@ export default function Checkout() {
               <input
                 readOnly
                 type="text"
-                value={listing_id}
+                value={room_id}
                 className="w-full border p-3 rounded-lg bg-gray-100"
               />
             </div>
@@ -170,21 +258,28 @@ export default function Checkout() {
               </select>
             </div>
 
-            {checkInDate && checkOutDate && fullName ? (
+            {checkInDate &&
+            checkOutDate &&
+            fullName &&
+            isDateRangeAvailable() ? (
               <Link
                 href={{
                   pathname: "/checkout/payment",
                   query: {
-                    price: totalPrice,
-                    name,
-                    image,
-                    type,
-                    location,
-                    listing_id,
+                    price_per_night,
+                    total_price: total_price,
+                    capacity,
+                    image_url,
+                    room_type,
+                    room_number,
+                    room_id,
                     full_name: fullName,
                     checkout_date: checkOutDate,
-                    checkin_date: checkInDate.toISOString().split("T")[0],
+                    checkin_date: new Date(checkInDate)
+                      .toISOString()
+                      .split("T")[0],
                     no_of_days: days,
+                    payment_method: paymentMethod,
                   },
                 }}
                 className="w-full mt-4 bg-green-600 hover:bg-green-700 transition-colors text-white font-semibold py-3 rounded-xl flex justify-center items-center"
@@ -196,31 +291,50 @@ export default function Checkout() {
                 disabled
                 className="w-full mt-4 bg-gray-400 text-white font-semibold py-3 rounded-xl flex justify-center items-center cursor-not-allowed"
               >
-                Confirm and Pay
+                {!isDateRangeAvailable() && checkOutDate
+                  ? "Selected dates are not available"
+                  : "Complete all fields to proceed"}
               </button>
             )}
           </div>
 
           {/* RIGHT: Booking Summary */}
           <div className="space-y-6">
-            {image && (
+            {image_url && (
               <div className="w-full h-64 relative rounded-xl overflow-hidden">
-                <Image src={image} alt={name} fill className="object-cover" />
+                <Image
+                  src={image_url}
+                  alt={room_type}
+                  fill
+                  className="object-cover"
+                  priority
+                  onError={(e) => {
+                    e.currentTarget.src = "/placeholder.jpg";
+                  }}
+                />
               </div>
             )}
-            <div>
-              <h2 className="text-2xl font-semibold">{name}</h2>
-              <p className="text-gray-500">{location}</p>
-              <p className="text-gray-700 mt-2">
-                {type} ({listing_id})
+            <div className="border rounded-lg p-4">
+              <h2 className="text-2xl font-semibold">{room_type}</h2>
+              <p className="text-gray-500 mt-2">
+                {capacity} {parseInt(capacity) > 1 ? "Guests" : "Guest"}
               </p>
-              <p className="text-lg mt-4">
-                Price per night: <strong>{priceString}</strong>
-              </p>
-              <p className="text-xl font-bold mt-2">
-                Total ({days} {days > 1 ? "nights" : "night"}): ₦
-                {totalPrice.toLocaleString()}
-              </p>
+              {amenities && (
+                <div className="mt-2">
+                  <p className="text-gray-500">{amenities}</p>
+                </div>
+              )}
+
+              <p className="text-gray-700 mt-2">Room Number: {room_number}</p>
+              <div className="mt-4 space-y-2">
+                <p className="text-lg">
+                  Price per night: <strong>{price_per_night}</strong>
+                </p>
+                <p className="text-xl font-bold">
+                  Total ({days} {days > 1 ? "nights" : "night"}): ₦
+                  {total_price.toLocaleString()}
+                </p>
+              </div>
             </div>
           </div>
         </div>

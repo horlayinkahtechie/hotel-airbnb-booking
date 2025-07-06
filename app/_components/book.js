@@ -19,12 +19,13 @@ export default function BookNowButton({ listing }) {
 
     try {
       const params = new URLSearchParams({
-        name: listing.name,
-        location: listing.location,
-        price: listing.price.toString(),
-        type: listing.type,
-        image: listing.image,
-        listing_id: listing.id,
+        capacity: listing.capacity,
+        amenities: listing.amenities,
+        price_per_night: listing.price_per_night.toString(),
+        room_type: listing.room_type,
+        image_url: listing.image_url,
+        room_number: listing.room_number,
+        room_id: listing.room_id,
       });
 
       router.push(`/checkout?${params.toString()}`);
